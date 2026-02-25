@@ -1,0 +1,17 @@
+{
+  "name": "Jovenes Casa Vida 20+",
+  "short_name": "Casa Vida 20+",
+  "description": "Formulario semanal de reflexion espiritual",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5EDE4",
+  "theme_color": "#8B5E3C",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
