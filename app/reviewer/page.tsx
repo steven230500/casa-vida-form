@@ -145,7 +145,9 @@ export default async function ReviewerDashboard() {
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center space-x-2">
                           <span className="truncate max-w-[200px] sm:max-w-xs">
-                            {res.forms?.title}
+                            {Array.isArray(res.forms)
+                              ? (res.forms[0] as any)?.title
+                              : (res.forms as any)?.title}
                           </span>
                           <span>&bull;</span>
                           <span>

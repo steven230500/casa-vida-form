@@ -138,8 +138,8 @@ export default async function ResponseDetail(props: {
                   <span>
                     ✓ Last reviewed by{" "}
                     {Array.isArray(response.profiles)
-                      ? response.profiles[0]?.full_name
-                      : response.profiles.full_name}{" "}
+                      ? (response.profiles[0] as any)?.full_name
+                      : (response.profiles as any)?.full_name}{" "}
                     on {format(parseISO(response.reviewed_at), "MMM d, h:mm a")}
                   </span>
                 </div>
@@ -154,8 +154,8 @@ export default async function ResponseDetail(props: {
                 </div>
                 <div className="font-medium">
                   {Array.isArray(response.forms)
-                    ? response.forms[0]?.title
-                    : response.forms?.title}
+                    ? (response.forms[0] as any)?.title
+                    : (response.forms as any)?.title}
                 </div>
               </div>
               {response.need_1on1 && (
