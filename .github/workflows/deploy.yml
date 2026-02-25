@@ -1,0 +1,63 @@
+name: deploy
+on:
+  workflow_run:
+    workflows: ["docker-publish"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH into droplet and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            # Docker / Compose check
+            if ! command -v docker >/dev/null 2>&1; then
+              curl -fsSL https://get.docker.com | sh
+            fi
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE="docker compose"
+            else
+              sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              COMPOSE="docker-compose"
+            fi
+
+            # External network for central Caddy proxy
+            docker network inspect infra_infra_network >/dev/null 2>&1 || docker network create infra_infra_network
+
+            # Deployment app folder
+            SERVER_PATH="${{ secrets.SERVER_PATH }}"
+            mkdir -p "$SERVER_PATH"
+            cd "$SERVER_PATH"
+
+            # Pull config from repo directly
+            rm -rf temp_repo
+            git clone https://github.com/steven230500/casa-vida-form.git temp_repo
+            cp temp_repo/docker-compose.prod.yml docker-compose.yml
+            rm -rf temp_repo
+
+            # We need to make sure the environment variables exist in the server for the container.
+            # Next.js standalone needs these at runtime if using public keys, or server secrets.
+            # Touch .env so docker-compose doesn't crash if it's missing.
+            touch .env
+
+            # Login to GHCR to pull the image (just in case it's private, though usually we make it public)
+            # Pull & Up
+            $COMPOSE pull
+            $COMPOSE up -d --remove-orphans
+
+            echo "Deployment to $SERVER_PATH completed successfully"

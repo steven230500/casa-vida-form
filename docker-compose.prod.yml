@@ -1,0 +1,14 @@
+services:
+  casavida-forms-app:
+    image: ghcr.io/steven230500/casa-vida-form:latest
+    container_name: casavida-forms-app
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "3000"
+    networks:
+      - infra_infra_network
+
+networks:
+  infra_infra_network:
+    external: true
