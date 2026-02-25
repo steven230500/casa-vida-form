@@ -52,8 +52,11 @@ jobs:
 
             # We need to make sure the environment variables exist in the server for the container.
             # Next.js standalone needs these at runtime if using public keys, or server secrets.
-            # Touch .env so docker-compose doesn't crash if it's missing.
-            touch .env
+            cat > .env << 'EOF'
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            EOF
 
             # Login to GHCR to pull the image (just in case it's private, though usually we make it public)
             # Pull & Up
