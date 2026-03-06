@@ -33,6 +33,19 @@ export default async function ReviewerDashboard() {
     );
   }
 
+  // Group responses by form title
+  const groupedResponses: Record<string, any[]> = {};
+  responses?.forEach((res) => {
+    const formTitle = Array.isArray(res.forms)
+      ? (res.forms[0] as any)?.title
+      : (res.forms as any)?.title || "Unknown Form";
+
+    if (!groupedResponses[formTitle]) {
+      groupedResponses[formTitle] = [];
+    }
+    groupedResponses[formTitle].push(res);
+  });
+
   // Calculate quick stats
   const total = responses?.length || 0;
   const newCount = responses?.filter((r) => r.status === "new").length || 0;
@@ -101,85 +114,95 @@ export default async function ReviewerDashboard() {
         </div>
       </div>
 
-      {/* Inbox List */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center bg-gray-50/50 dark:bg-zinc-900/50">
-          <h2 className="text-lg font-semibold">Inbox</h2>
-          {/* Add basic filtering UI here later if needed */}
-        </div>
-
-        {responses?.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No responses yet.</div>
+      {/* Grouped Responses */}
+      <div className="space-y-6">
+        {Object.keys(groupedResponses).length === 0 ? (
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 p-8 text-center text-gray-500">
+            No responses yet.
+          </div>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-zinc-800">
-            {responses?.map((res) => (
-              <li
-                key={res.id}
-                className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
-              >
-                <Link href={`/reviewer/${res.id}`} className="block px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      {/* Avatar / Initials */}
-                      <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold shrink-0">
-                        {res.anonymous
-                          ? "A"
-                          : (
-                              res.respondent_name?.charAt(0) || "?"
-                            ).toUpperCase()}
-                      </div>
-
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-semibold text-gray-900 dark:text-white">
+          Object.entries(groupedResponses).map(([formTitle, formResponses]) => (
+            <div
+              key={formTitle}
+              className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center bg-gray-50/50 dark:bg-zinc-900/50">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <span className="text-blue-600 dark:text-blue-400">
+                    {formTitle}
+                  </span>
+                  <span className="text-xs font-normal text-gray-500 bg-gray-200 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                    {formResponses.length}
+                  </span>
+                </h2>
+              </div>
+              <ul className="divide-y divide-gray-100 dark:divide-zinc-800">
+                {formResponses.map((res) => (
+                  <li
+                    key={res.id}
+                    className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                  >
+                    <Link
+                      href={`/reviewer/${res.id}`}
+                      className="block px-6 py-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold shrink-0">
                             {res.anonymous
-                              ? "Anonymous User"
-                              : res.respondent_name || "Unnamed User"}
-                          </span>
-                          {getStatusBadge(res.status)}
-                          {res.need_1on1 && (
-                            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] rounded-full uppercase tracking-wider font-bold">
-                              1-on-1
-                            </span>
-                          )}
+                              ? "A"
+                              : (
+                                  res.respondent_name?.charAt(0) || "?"
+                                ).toUpperCase()}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-semibold text-gray-900 dark:text-white">
+                                {res.anonymous
+                                  ? "Anonymous User"
+                                  : res.respondent_name || "Unnamed User"}
+                              </span>
+                              {getStatusBadge(res.status)}
+                              {res.need_1on1 && (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] rounded-full uppercase tracking-wider font-bold">
+                                  1-on-1
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center space-x-2">
+                              <span>
+                                {format(
+                                  parseISO(res.created_at),
+                                  "MMM d, yyyy h:mm a",
+                                )}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center space-x-2">
-                          <span className="truncate max-w-[200px] sm:max-w-xs">
-                            {Array.isArray(res.forms)
-                              ? (res.forms[0] as any)?.title
-                              : (res.forms as any)?.title}
-                          </span>
-                          <span>&bull;</span>
-                          <span>
-                            {format(
-                              parseISO(res.created_at),
-                              "MMM d, yyyy h:mm a",
-                            )}
-                          </span>
+
+                        <div className="text-gray-400">
+                          <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="text-gray-400">
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
         )}
       </div>
     </div>

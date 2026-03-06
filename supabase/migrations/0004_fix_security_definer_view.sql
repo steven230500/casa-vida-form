@@ -1,11 +1,7 @@
--- 0001_public_views.sql
+-- Fix Security Definer View issue for public.public_forms_questions
+-- By default, Postgres 15+ allows setting security_invoker = true on views
+-- to ensure RLS is enforced based on the querying user.
 
--- 1. Add draft_id to responses to prevent duplicate submissions
-ALTER TABLE public.responses ADD COLUMN IF NOT EXISTS draft_id uuid UNIQUE;
-
--- 2. Create a View for Public Form Loading
--- This securely exposes only active forms, their blocks, and their questions.
--- Nested JSON aggregation is used so the frontend gets a single ready-to-use object.
 CREATE OR REPLACE VIEW public.public_forms_questions 
 WITH (security_invoker = true)
 AS
@@ -46,6 +42,5 @@ WHERE f.is_active = true
   AND (f.start_at IS NULL OR f.start_at <= now())
   AND (f.end_at IS NULL OR f.end_at >= now());
 
--- Grant access to the view for authenticated and anonymous users
--- This works because the VIEW itself only SELECTs forms where is_active = true
+-- Re-grant permissions just in case
 GRANT SELECT ON public.public_forms_questions TO anon, authenticated;

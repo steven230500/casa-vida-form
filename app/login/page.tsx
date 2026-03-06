@@ -18,7 +18,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-serif">Panel de Acceso</h1>
           <p className="text-sm text-muted-foreground mt-2">
-            Solo personal autorizado (test@test.com / 123456789)
+            Solo personal autorizado
           </p>
         </div>
 
