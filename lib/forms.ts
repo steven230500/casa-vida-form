@@ -102,3 +102,14 @@ export async function getActiveFormById(id: string): Promise<PublicForm | null> 
   if (!formRow) return null
   return assemble(formRow)
 }
+
+export async function getActiveFormBySlug(slug: string): Promise<PublicForm | null> {
+  const db = getDb()
+  const [formRow] = await db
+    .select()
+    .from(forms)
+    .where(and(eq(forms.slug, slug), activeFormWhere()))
+    .limit(1)
+  if (!formRow) return null
+  return assemble(formRow)
+}

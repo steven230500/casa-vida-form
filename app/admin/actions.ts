@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { forms, formBlocks, questions } from "@/lib/db/schema";
 import { getSession } from "@/lib/session";
+import { generateUniqueSlug, isSlugTaken, slugify } from "@/lib/slug";
 
 async function requireAdmin() {
   const session = await getSession();
@@ -29,11 +30,13 @@ export async function createForm(formData: FormData) {
   }
 
   try {
+    const slug = await generateUniqueSlug(title);
     const [data] = await db
       .insert(forms)
       .values({
         title,
         description,
+        slug,
         is_active: isActive,
         created_by: session.userId,
       })
@@ -54,15 +57,33 @@ export async function updateForm(id: string, formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const isActive = formData.get("is_active") === "true";
+  const rawSlug = formData.get("slug") as string | null;
 
   if (!title) {
     return { error: "El título es obligatorio" };
   }
 
   try {
+    const update: { title: string; description: string; is_active: boolean; slug?: string } = {
+      title,
+      description,
+      is_active: isActive,
+    };
+
+    if (rawSlug?.trim()) {
+      const slug = slugify(rawSlug);
+      if (!slug) {
+        return { error: "El enlace corto no es válido" };
+      }
+      if (await isSlugTaken(slug, id)) {
+        return { error: "Ese enlace corto ya está en uso por otro formulario" };
+      }
+      update.slug = slug;
+    }
+
     const [data] = await db
       .update(forms)
-      .set({ title, description, is_active: isActive })
+      .set(update)
       .where(eq(forms.id, id))
       .returning();
 

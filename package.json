@@ -55,6 +55,7 @@
     "next": "16.1.6",
     "next-themes": "^0.4.6",
     "postgres": "^3.4.9",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-day-picker": "9.13.2",
     "react-dom": "19.2.4",
@@ -70,6 +71,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@types/uuid": "^10.0.0",

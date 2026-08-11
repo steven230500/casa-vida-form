@@ -24,11 +24,13 @@ import {
   Edit2,
   X,
 } from "lucide-react";
+import ShareLinkCard from "./ShareLinkCard";
 
 type Form = {
   id: string;
   title: string;
   description: string | null;
+  slug: string | null;
   is_active: boolean;
 };
 
@@ -92,6 +94,9 @@ export default function FormEditorClient({
     formData.append("title", form.title || "");
     formData.append("description", form.description || "");
     formData.append("is_active", String(form.is_active));
+    if (!isNew) {
+      formData.append("slug", form.slug || "");
+    }
 
     try {
       let result;
@@ -373,6 +378,30 @@ export default function FormEditorClient({
             />
           </div>
 
+          {!isNew && (
+            <div>
+              <label
+                htmlFor="form-slug"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Enlace corto
+              </label>
+              <div className="mt-1 flex items-center">
+                <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-400">
+                  /f/
+                </span>
+                <input
+                  id="form-slug"
+                  type="text"
+                  value={form.slug || ""}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                  className="block w-full rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 sm:text-sm p-2 font-mono"
+                  placeholder="registro-voluntarios"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-between items-center pt-4">
             {!isNew && (
               <button
@@ -395,6 +424,8 @@ export default function FormEditorClient({
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </form>
       </div>
+
+      {!isNew && <ShareLinkCard slug={form.slug ?? null} />}
 
       {/* BLOCKS & QUESTIONS EDITOR */}
       {!isNew && (
