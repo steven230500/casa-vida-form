@@ -1,47 +1,44 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound, redirect } from "next/navigation";
+import { asc, eq } from "drizzle-orm";
+import { notFound } from "next/navigation";
+import { getDb } from "@/lib/db";
+import { forms, formBlocks, questions } from "@/lib/db/schema";
 import FormEditorClient from "./FormEditorClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function FormEditorPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const isNew = id === "new";
-  const supabase = await createClient();
+  const db = getDb();
 
   let form = null;
-  let blocks = [];
-  let questions = [];
+  let blocks: (typeof formBlocks.$inferSelect)[] = [];
+  let formQuestions: (typeof questions.$inferSelect)[] = [];
 
   if (!isNew) {
-    const { data: formData, error: formError } = await supabase
-      .from("forms")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const [formData] = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
 
-    if (formError || !formData) {
+    if (!formData) {
       return notFound();
     }
     form = formData;
 
-    const { data: blocksData } = await supabase
-      .from("form_blocks")
-      .select("*")
-      .eq("form_id", id)
-      .order("order", { ascending: true });
-
-    blocks = blocksData || [];
-
-    const { data: questionsData } = await supabase
-      .from("questions")
-      .select("*")
-      .eq("form_id", id)
-      .order("order", { ascending: true });
-
-    questions = questionsData || [];
+    [blocks, formQuestions] = await Promise.all([
+      db
+        .select()
+        .from(formBlocks)
+        .where(eq(formBlocks.form_id, id))
+        .orderBy(asc(formBlocks.order)),
+      db
+        .select()
+        .from(questions)
+        .where(eq(questions.form_id, id))
+        .orderBy(asc(questions.order)),
+    ]);
   }
 
   return (
@@ -58,7 +55,7 @@ export default async function FormEditorPage({
       <FormEditorClient
         initialForm={form}
         initialBlocks={blocks}
-        initialQuestions={questions}
+        initialQuestions={formQuestions}
         isNew={isNew}
       />
     </div>

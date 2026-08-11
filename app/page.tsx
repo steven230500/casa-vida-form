@@ -1,18 +1,12 @@
 import { FormWizard } from "@/components/form/form-wizard";
-import { createClient } from "@/lib/supabase/server";
+import { getActiveForm } from "@/lib/forms";
+
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const supabase = await createClient();
+  const form = await getActiveForm();
 
-  // Find the currently active form using our public view
-  // The 'blocks' column contains the nested JSON structure of blocks and their questions
-  const { data: form } = await supabase
-    .from("public_forms_questions")
-    .select("form_id, title, description, blocks")
-    .limit(1)
-    .maybeSingle();
-
-  if (!form?.form_id) {
+  if (!form) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="max-w-md w-full text-center p-8 rounded-2xl shadow-sm border border-border">
@@ -29,13 +23,12 @@ export default async function Page() {
     );
   }
 
-  // Pass the raw blocks array directly to the wizard to drive dynamic rendering
   return (
     <FormWizard
       formId={form.form_id}
       formTitle={form.title}
-      formDescription={form.description}
-      blocks={form.blocks || []}
+      formDescription={form.description ?? ""}
+      blocks={form.blocks}
     />
   );
 }

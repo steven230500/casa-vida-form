@@ -17,7 +17,7 @@ type Question = {
 
 type Block = {
   id: string;
-  key: string;
+  key: string | null;
   title: string;
   order: number;
   questions: Question[];

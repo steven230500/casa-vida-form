@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { forms, responses, answers } from "@/lib/db/schema";
 
 // Simple in-memory rate limiting (Note: in production use Vercel KV or Upstash Redis)
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
@@ -50,26 +52,35 @@ export async function POST(request: Request) {
       need_1on1,
       preferred_date,
       preferred_time,
-      answers, // Array of { question_id, value, type? }
+      answers: submittedAnswers, // Array of { question_id, value, type? }
     } = body;
 
-    if (!form_id || !draft_id || !answers || !Array.isArray(answers)) {
+    if (
+      !form_id ||
+      !draft_id ||
+      !submittedAnswers ||
+      !Array.isArray(submittedAnswers)
+    ) {
       return NextResponse.json(
         { error: "Missing form_id, draft_id, or answers array" },
         { status: 400 },
       );
     }
 
-    const supabaseAdmin = createAdminClient();
+    const db = getDb();
 
     // 1. Validate Form is Active
-    const { data: form, error: formError } = await supabaseAdmin
-      .from("forms")
-      .select("is_active, start_at, end_at")
-      .eq("id", form_id)
-      .single();
+    const [form] = await db
+      .select({
+        is_active: forms.is_active,
+        start_at: forms.start_at,
+        end_at: forms.end_at,
+      })
+      .from(forms)
+      .where(eq(forms.id, form_id))
+      .limit(1);
 
-    if (formError || !form) {
+    if (!form) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
@@ -92,11 +103,11 @@ export async function POST(request: Request) {
     }
 
     // 2. Anti-duplication check using draft_id
-    const { data: existingResponse } = await supabaseAdmin
-      .from("responses")
-      .select("id")
-      .eq("draft_id", draft_id)
-      .maybeSingle();
+    const [existingResponse] = await db
+      .select({ id: responses.id })
+      .from(responses)
+      .where(eq(responses.draft_id, draft_id))
+      .limit(1);
 
     if (existingResponse) {
       return NextResponse.json(
@@ -110,7 +121,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Custom Validations (e.g., points100 must sum to 100)
-    for (const ans of answers) {
+    for (const ans of submittedAnswers) {
       // Assuming the client optionally sends the type, or we could fetch question definitions here.
       // For performance, we trust the client's payload structure but enforce the rule:
       if (ans.type === "points100") {
@@ -129,56 +140,46 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Insert the main Response record
-    const { data: response, error: responseError } = await supabaseAdmin
-      .from("responses")
-      .insert({
-        form_id,
-        draft_id,
-        anonymous: anonymous ?? false,
-        respondent_name,
-        respondent_email,
-        need_1on1: need_1on1 ?? false,
-        preferred_date,
-        preferred_time,
-        status: "new",
-      })
-      .select("id")
-      .single();
+    // 4. Insert the main Response record, 5. Insert all answers
+    let responseId: string;
+    try {
+      responseId = await db.transaction(async (tx) => {
+        const [response] = await tx
+          .insert(responses)
+          .values({
+            form_id,
+            draft_id,
+            anonymous: anonymous ?? false,
+            respondent_name,
+            respondent_email,
+            need_1on1: need_1on1 ?? false,
+            preferred_date,
+            preferred_time,
+            status: "new",
+          })
+          .returning({ id: responses.id });
 
-    if (responseError) {
-      // Check if it's a unique constraint violation on draft_id that fired concurrently
-      if (responseError.code === "23505") {
+        await tx.insert(answers).values(
+          submittedAnswers.map((ans: any) => ({
+            response_id: response.id,
+            question_id: ans.question_id,
+            value: ans.value,
+          })),
+        );
+
+        return response.id;
+      });
+    } catch (error) {
+      // Unique constraint violation on draft_id firing concurrently
+      if ((error as { code?: string }).code === "23505") {
         return NextResponse.json(
           { error: "Duplicate submission detected" },
           { status: 409 },
         );
       }
-      console.error("Error inserting response:", responseError);
+      console.error("Error inserting response:", error);
       return NextResponse.json(
         { error: "Database error while saving response" },
-        { status: 500 },
-      );
-    }
-
-    const responseId = response.id;
-
-    // 5. Prepare the answers array for bulk insert
-    const formattedAnswers = answers.map((ans: any) => ({
-      response_id: responseId,
-      question_id: ans.question_id,
-      value: ans.value,
-    }));
-
-    // 6. Insert all answers
-    const { error: answersError } = await supabaseAdmin
-      .from("answers")
-      .insert(formattedAnswers);
-
-    if (answersError) {
-      console.error("Error inserting answers:", answersError);
-      return NextResponse.json(
-        { error: "Failed to save some answers" },
         { status: 500 },
       );
     }

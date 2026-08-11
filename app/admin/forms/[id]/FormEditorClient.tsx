@@ -28,13 +28,14 @@ import {
 type Form = {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   is_active: boolean;
 };
 
 type Block = {
   id: string;
   form_id: string;
+  key: string | null;
   title: string;
   order: number;
 };
@@ -42,7 +43,7 @@ type Block = {
 type Question = {
   id: string;
   form_id: string;
-  block_id: string;
+  block_id: string | null;
   key: string;
   label: string;
   type: string;
@@ -138,7 +139,7 @@ export default function FormEditorClient({
     const order = blocks.length;
     const result = await createBlock(form.id!, title, order);
 
-    if (result.error) {
+    if (result.error || !result.data) {
       alert(result.error);
     } else {
       setBlocks([...blocks, result.data]);
@@ -236,15 +237,16 @@ export default function FormEditorClient({
       result = await createQuestion(payload);
     }
 
-    if (result.error) {
+    if (result.error || !result.data) {
       alert(result.error);
     } else {
+      const savedQuestion = result.data;
       if (editingQuestion.id) {
         setQuestions(
-          questions.map((q) => (q.id === editingQuestion.id ? result.data : q)),
+          questions.map((q) => (q.id === editingQuestion.id ? savedQuestion : q)),
         );
       } else {
-        setQuestions([...questions, result.data]);
+        setQuestions([...questions, savedQuestion]);
       }
       setIsQuestionModalOpen(false);
       setEditingQuestion(null);

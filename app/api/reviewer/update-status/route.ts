@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { responses, responseStatusValues } from "@/lib/db/schema";
+import { getSession } from "@/lib/session";
+import { reviewerRoles } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-
-    // Auth Check
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session || !reviewerRoles.includes(session.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -23,28 +22,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const validStatuses = ["new", "reviewed", "followup_pending", "closed"];
-    if (!validStatuses.includes(status)) {
+    if (!responseStatusValues.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    // Because we use the standard cookie client (not admin client),
-    // Supabase RLS policies will automatically block the UPDATE
-    // if the user's role is not admin, reviewer, pastor, or leader.
-    const { data, error } = await supabase
-      .from("responses")
-      .update({
+    const db = getDb();
+    const [data] = await db
+      .update(responses)
+      .set({
         status,
-        reviewed_by: user.id,
-        reviewed_at: new Date().toISOString(),
+        reviewed_by: session.userId,
+        reviewed_at: new Date(),
       })
-      .eq("id", response_id)
-      .select("id")
-      .single();
+      .where(eq(responses.id, response_id))
+      .returning({ id: responses.id });
 
-    if (error) {
-      console.error("Error updating status:", error);
-      // Determine if it was an RLS violation (usually row not found or 403 like error)
+    if (!data) {
       return NextResponse.json(
         { error: "Failed to update or unauthorized" },
         { status: 403 },

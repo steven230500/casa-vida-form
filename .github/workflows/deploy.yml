@@ -44,23 +44,36 @@ jobs:
             mkdir -p "$SERVER_PATH"
             cd "$SERVER_PATH"
 
-            # Pull config from repo directly
+            # Pull config from repo directly (kept until after migrations run)
             rm -rf temp_repo
             git clone https://github.com/steven230500/casa-vida-form.git temp_repo
             cp temp_repo/docker-compose.prod.yml docker-compose.yml
-            rm -rf temp_repo
 
-            # We need to make sure the environment variables exist in the server for the container.
-            # Next.js standalone needs these at runtime if using public keys, or server secrets.
-            cat > .env << 'EOF'
-            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            EOF
+            # casa-vida's compose project owns the Postgres container this app
+            # now shares; Compose prefixes network names by project directory,
+            # so the actual name is discovered here rather than hardcoded.
+            INTERNAL_NET=$(docker network ls --filter name=casavida_internal --format '{{.Name}}' | head -1)
 
-            # Login to GHCR to pull the image (just in case it's private, though usually we make it public)
+            # Runtime secrets - written as a single printf, not a heredoc.
+            # appleboy/ssh-action wraps every line of this script with its own
+            # exit-code tracking (for script_stop), which corrupts multi-line
+            # heredoc bodies by injecting garbage between each line.
+            printf 'DATABASE_URL=postgres://casavida:%s@casavida-db:5432/casavida\nSESSION_SECRET=%s\nCASAVIDA_INTERNAL_NETWORK=%s\n' "${{ secrets.POSTGRES_PASSWORD }}" "${{ secrets.SESSION_SECRET }}" "$INTERNAL_NET" > .env
+
             # Pull & Up
             $COMPOSE pull
             $COMPOSE up -d --remove-orphans
+
+            # Apply pending SQL migrations against the shared casavida-db using
+            # a throwaway node container on the same internal network -
+            # drizzle-kit isn't bundled in the standalone production image, so
+            # this runs from a full checkout instead.
+            docker run --rm \
+              --network "$INTERNAL_NET" \
+              -v "$(pwd)/temp_repo:/app" -w /app \
+              -e DATABASE_URL="postgres://casavida:${{ secrets.POSTGRES_PASSWORD }}@casavida-db:5432/casavida" \
+              node:20-alpine sh -c "npm ci && npx drizzle-kit migrate"
+
+            rm -rf temp_repo
 
             echo "Deployment to $SERVER_PATH completed successfully"

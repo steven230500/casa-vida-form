@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { format, parseISO } from "date-fns";
+import { eq } from "drizzle-orm";
+import { format } from "date-fns";
+import { getDb } from "@/lib/db";
+import { responses, forms, answers, questions, formBlocks, users } from "@/lib/db/schema";
 import StatusDropdown from "./StatusDropdown";
+
+export const dynamic = "force-dynamic";
 
 export default async function ResponseDetail(props: {
   params: Promise<{ id: string }>;
@@ -10,61 +14,55 @@ export default async function ResponseDetail(props: {
   const params = await props.params;
   const { id } = params;
 
-  const supabase = await createClient();
+  const db = getDb();
 
-  // Fetch the full response details including nested answers and question metadata
-  const { data: response, error } = await supabase
-    .from("responses")
-    .select(
-      `
-      id,
-      anonymous,
-      respondent_name,
-      respondent_email,
-      need_1on1,
-      preferred_date,
-      preferred_time,
-      status,
-      created_at,
-      reviewed_at,
-      forms ( title, description ),
-      profiles!responses_reviewed_by_fkey ( full_name ),
-      answers (
-        id,
-        value,
-        questions (
-          id,
-          label,
-          type,
-          form_blocks ( title )
-        )
-      )
-    `,
-    )
-    .eq("id", id)
-    .single();
+  const [response] = await db
+    .select({
+      id: responses.id,
+      anonymous: responses.anonymous,
+      respondent_name: responses.respondent_name,
+      respondent_email: responses.respondent_email,
+      need_1on1: responses.need_1on1,
+      preferred_date: responses.preferred_date,
+      preferred_time: responses.preferred_time,
+      status: responses.status,
+      created_at: responses.created_at,
+      reviewed_at: responses.reviewed_at,
+      form_title: forms.title,
+      reviewer_name: users.full_name,
+    })
+    .from(responses)
+    .leftJoin(forms, eq(responses.form_id, forms.id))
+    .leftJoin(users, eq(responses.reviewed_by, users.id))
+    .where(eq(responses.id, id))
+    .limit(1);
 
-  if (error || !response) {
-    if (error && error.code !== "PGRST116") {
-      console.error("Error fetching response detail:", error);
-    }
+  if (!response) {
     notFound();
   }
 
-  // Group answers by question block
-  const groupedAnswers = response.answers.reduce((acc: any, ans: any) => {
-    // Determine the block title safely, handling array or object forms of form_blocks
-    const blocksData = ans.questions?.form_blocks;
-    const blockTitle = Array.isArray(blocksData)
-      ? blocksData[0]?.title
-      : blocksData?.title || "General";
+  const answerRows = await db
+    .select({
+      id: answers.id,
+      value: answers.value,
+      question_label: questions.label,
+      question_type: questions.type,
+      block_title: formBlocks.title,
+    })
+    .from(answers)
+    .leftJoin(questions, eq(answers.question_id, questions.id))
+    .leftJoin(formBlocks, eq(questions.block_id, formBlocks.id))
+    .where(eq(answers.response_id, id));
 
+  // Group answers by question block
+  const groupedAnswers = answerRows.reduce((acc: Record<string, typeof answerRows>, ans) => {
+    const blockTitle = ans.block_title || "General";
     if (!acc[blockTitle]) acc[blockTitle] = [];
     acc[blockTitle].push(ans);
     return acc;
   }, {});
 
-  const renderValue = (value: any, type: string) => {
+  const renderValue = (value: any, type: string | null) => {
     if (!value)
       return <span className="text-gray-400 italic">No answer provided</span>;
 
@@ -101,10 +99,7 @@ export default async function ResponseDetail(props: {
         >
           &larr; Back to Inbox
         </Link>
-        <StatusDropdown
-          responseId={response.id}
-          currentStatus={response.status}
-        />
+        <StatusDropdown responseId={response.id} currentStatus={response.status} />
       </div>
 
       <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
@@ -130,17 +125,14 @@ export default async function ResponseDetail(props: {
               )}
               <div className="text-sm text-gray-500 dark:text-gray-500 mt-4 flex items-center space-x-2">
                 <span>
-                  Submitted: {format(parseISO(response.created_at), "PPP at p")}
+                  Submitted: {format(response.created_at, "PPP 'at' p")}
                 </span>
               </div>
-              {response.reviewed_at && response.profiles && (
+              {response.reviewed_at && response.reviewer_name && (
                 <div className="text-sm text-gray-500 dark:text-gray-500 mt-1 flex items-center space-x-2">
                   <span>
-                    ✓ Last reviewed by{" "}
-                    {Array.isArray(response.profiles)
-                      ? (response.profiles[0] as any)?.full_name
-                      : (response.profiles as any)?.full_name}{" "}
-                    on {format(parseISO(response.reviewed_at), "MMM d, h:mm a")}
+                    ✓ Last reviewed by {response.reviewer_name} on{" "}
+                    {format(response.reviewed_at, "MMM d, h:mm a")}
                   </span>
                 </div>
               )}
@@ -152,11 +144,7 @@ export default async function ResponseDetail(props: {
                 <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">
                   Form
                 </div>
-                <div className="font-medium">
-                  {Array.isArray(response.forms)
-                    ? (response.forms[0] as any)?.title
-                    : (response.forms as any)?.title}
-                </div>
+                <div className="font-medium">{response.form_title}</div>
               </div>
               {response.need_1on1 && (
                 <div className="pt-2 border-t border-gray-100 dark:border-zinc-700">
@@ -177,33 +165,31 @@ export default async function ResponseDetail(props: {
 
         {/* Answers Body */}
         <div className="p-6 md:p-8 space-y-10">
-          {Object.entries(groupedAnswers).map(
-            ([blockTitle, answers]: [string, any]) => (
-              <div key={blockTitle}>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 border-b pb-2 flex items-center space-x-2">
-                  <span className="bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded text-xs">
-                    Section
-                  </span>
-                  <span>{blockTitle}</span>
-                </h2>
-                <ul className="space-y-6">
-                  {answers.map((ans: any) => (
-                    <li
-                      key={ans.id}
-                      className="bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-4"
-                    >
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        {ans.questions?.label}
-                      </p>
-                      <div className="text-gray-700 dark:text-gray-300">
-                        {renderValue(ans.value, ans.questions?.type)}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ),
-          )}
+          {Object.entries(groupedAnswers).map(([blockTitle, blockAnswers]) => (
+            <div key={blockTitle}>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 border-b pb-2 flex items-center space-x-2">
+                <span className="bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded text-xs">
+                  Section
+                </span>
+                <span>{blockTitle}</span>
+              </h2>
+              <ul className="space-y-6">
+                {blockAnswers.map((ans) => (
+                  <li
+                    key={ans.id}
+                    className="bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-4"
+                  >
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                      {ans.question_label}
+                    </p>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      {renderValue(ans.value, ans.question_type)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
           {Object.keys(groupedAnswers).length === 0 && (
             <div className="text-center text-gray-500 py-12">

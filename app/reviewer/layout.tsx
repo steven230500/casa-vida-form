@@ -1,27 +1,16 @@
 import Link from "next/link";
 import { signout } from "@/app/login/actions";
 import { LogOut, Settings } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/session";
 
 export default async function ReviewerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await getSession();
+  const role = session?.role ?? "user";
 
-  let role = "user";
-  if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    if (data) role = data.role;
-  }
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black font-sans text-gray-900 dark:text-gray-100">
       {/* Top Navigation Bar */}

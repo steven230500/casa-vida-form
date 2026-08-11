@@ -1,45 +1,33 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { format, parseISO } from "date-fns";
+import { desc, eq } from "drizzle-orm";
+import { format } from "date-fns";
+import { getDb } from "@/lib/db";
+import { responses, forms } from "@/lib/db/schema";
+
+export const dynamic = "force-dynamic";
 
 export default async function ReviewerDashboard() {
-  const supabase = await createClient();
+  const db = getDb();
 
-  // Fetch all responses, joining forms and profiles (for reviewer assignment)
-  // Ordered by newest first
-  const { data: responses, error } = await supabase
-    .from("responses")
-    .select(
-      `
-      id,
-      anonymous,
-      respondent_name,
-      respondent_email,
-      need_1on1,
-      status,
-      created_at,
-      forms (title),
-      profiles!responses_reviewed_by_fkey (full_name)
-    `,
-    )
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching responses:", error);
-    return (
-      <div className="p-4 bg-red-50 text-red-700 rounded-lg">
-        Error loading responses. Please check console.
-      </div>
-    );
-  }
+  const rows = await db
+    .select({
+      id: responses.id,
+      anonymous: responses.anonymous,
+      respondent_name: responses.respondent_name,
+      respondent_email: responses.respondent_email,
+      need_1on1: responses.need_1on1,
+      status: responses.status,
+      created_at: responses.created_at,
+      form_title: forms.title,
+    })
+    .from(responses)
+    .leftJoin(forms, eq(responses.form_id, forms.id))
+    .orderBy(desc(responses.created_at));
 
   // Group responses by form title
-  const groupedResponses: Record<string, any[]> = {};
-  responses?.forEach((res) => {
-    const formTitle = Array.isArray(res.forms)
-      ? (res.forms[0] as any)?.title
-      : (res.forms as any)?.title || "Unknown Form";
-
+  const groupedResponses: Record<string, typeof rows> = {};
+  rows.forEach((res) => {
+    const formTitle = res.form_title || "Unknown Form";
     if (!groupedResponses[formTitle]) {
       groupedResponses[formTitle] = [];
     }
@@ -47,11 +35,12 @@ export default async function ReviewerDashboard() {
   });
 
   // Calculate quick stats
-  const total = responses?.length || 0;
-  const newCount = responses?.filter((r) => r.status === "new").length || 0;
-  const needs1on1Count = responses?.filter((r) => r.need_1on1).length || 0;
-  const pendingFollowups =
-    responses?.filter((r) => r.status === "followup_pending").length || 0;
+  const total = rows.length;
+  const newCount = rows.filter((r) => r.status === "new").length;
+  const needs1on1Count = rows.filter((r) => r.need_1on1).length;
+  const pendingFollowups = rows.filter(
+    (r) => r.status === "followup_pending",
+  ).length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -172,10 +161,7 @@ export default async function ReviewerDashboard() {
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center space-x-2">
                               <span>
-                                {format(
-                                  parseISO(res.created_at),
-                                  "MMM d, yyyy h:mm a",
-                                )}
+                                {format(res.created_at, "MMM d, yyyy h:mm a")}
                               </span>
                             </div>
                           </div>

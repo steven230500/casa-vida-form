@@ -1,19 +1,42 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken, reviewerRoles } from "@/lib/auth";
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+export const runtime = "nodejs";
+
+export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const isProtectedPath = path.startsWith("/admin") || path.startsWith("/reviewer");
+
+  if (!isProtectedPath) {
+    return NextResponse.next();
+  }
+
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  const session = verifySessionToken(token);
+
+  if (!session) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (path.startsWith("/admin") && session.role !== "admin") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/unauthorized";
+    return NextResponse.redirect(url);
+  }
+
+  if (path.startsWith("/reviewer") && !reviewerRoles.includes(session.role)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/unauthorized";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

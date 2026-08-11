@@ -8,7 +8,14 @@ services:
       - "3000"
     networks:
       - infra_infra_network
+      - casavida_internal
 
 networks:
   infra_infra_network:
     external: true
+  # Shared with the casa-vida repo's compose project on the same droplet, so
+  # this app can reach its casavida-db container by name. Actual network name
+  # is discovered at deploy time (see deploy.yml) since it's Compose-project-prefixed.
+  casavida_internal:
+    external: true
+    name: ${CASAVIDA_INTERNAL_NETWORK}

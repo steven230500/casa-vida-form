@@ -1,29 +1,24 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getDb } from "@/lib/db";
+import { forms, formBlocks, questions } from "@/lib/db/schema";
+import { getSession } from "@/lib/session";
 
-// Helper to get an admin client (bypassing RLS or acting as an admin user)
-// Since this is a restricted /admin route, middleware already checked the role.
-// We use the regular authenticated client, but we know it's an admin.
-async function getAdminClient() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+async function requireAdmin() {
+  const session = await getSession();
+  if (!session) {
     throw new Error("Unauthorized");
   }
-
-  // We rely on RLS policies ("Admins can manage forms") mapped to this user session.
-  return { supabase, user };
+  return session;
 }
 
 // --- FORMS ---
 
 export async function createForm(formData: FormData) {
-  const { supabase, user } = await getAdminClient();
+  const session = await requireAdmin();
+  const db = getDb();
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
@@ -33,30 +28,28 @@ export async function createForm(formData: FormData) {
     return { error: "El título es obligatorio" };
   }
 
-  const { data, error } = await supabase
-    .from("forms")
-    .insert([
-      {
+  try {
+    const [data] = await db
+      .insert(forms)
+      .values({
         title,
         description,
         is_active: isActive,
-        created_by: user.id,
-      },
-    ])
-    .select()
-    .single();
+        created_by: session.userId,
+      })
+      .returning();
 
-  if (error) {
+    revalidatePath("/admin/forms");
+    return { data };
+  } catch (error) {
     console.error("Error creating form:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath("/admin/forms");
-  return { data };
 }
 
 export async function updateForm(id: string, formData: FormData) {
-  const { supabase } = await getAdminClient();
+  await requireAdmin();
+  const db = getDb();
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
@@ -66,107 +59,87 @@ export async function updateForm(id: string, formData: FormData) {
     return { error: "El título es obligatorio" };
   }
 
-  const { data, error } = await supabase
-    .from("forms")
-    .update({
-      title,
-      description,
-      is_active: isActive,
-    })
-    .eq("id", id)
-    .select()
-    .single();
+  try {
+    const [data] = await db
+      .update(forms)
+      .set({ title, description, is_active: isActive })
+      .where(eq(forms.id, id))
+      .returning();
 
-  if (error) {
+    revalidatePath("/admin/forms");
+    revalidatePath(`/admin/forms/${id}`);
+    return { data };
+  } catch (error) {
     console.error("Error updating form:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath("/admin/forms");
-  revalidatePath(`/admin/forms/${id}`);
-  return { data };
 }
 
 export async function deleteForm(id: string) {
-  const { supabase } = await getAdminClient();
+  await requireAdmin();
+  const db = getDb();
 
-  const { error } = await supabase.from("forms").delete().eq("id", id);
-
-  if (error) {
+  try {
+    await db.delete(forms).where(eq(forms.id, id));
+    revalidatePath("/admin/forms");
+    return { success: true };
+  } catch (error) {
     console.error("Error deleting form:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath("/admin/forms");
-  return { success: true };
 }
 
 // --- BLOCKS (Sections) ---
 
-export async function createBlock(
-  formId: string,
-  title: string,
-  order: number,
-) {
-  const { supabase } = await getAdminClient();
+export async function createBlock(formId: string, title: string, order: number) {
+  await requireAdmin();
+  const db = getDb();
 
-  const { data, error } = await supabase
-    .from("form_blocks")
-    .insert([
-      {
-        form_id: formId,
-        title,
-        order,
-      },
-    ])
-    .select()
-    .single();
+  try {
+    const [data] = await db
+      .insert(formBlocks)
+      .values({ form_id: formId, title, order })
+      .returning();
 
-  if (error) {
+    revalidatePath(`/admin/forms/${formId}`);
+    return { data };
+  } catch (error) {
     console.error("Error creating block:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath(`/admin/forms/${formId}`);
-  return { data };
 }
 
-export async function updateBlock(
-  id: string,
-  formId: string,
-  title: string,
-  order: number,
-) {
-  const { supabase } = await getAdminClient();
+export async function updateBlock(id: string, formId: string, title: string, order: number) {
+  await requireAdmin();
+  const db = getDb();
 
-  const { data, error } = await supabase
-    .from("form_blocks")
-    .update({ title, order })
-    .eq("id", id)
-    .select()
-    .single();
+  try {
+    const [data] = await db
+      .update(formBlocks)
+      .set({ title, order })
+      .where(eq(formBlocks.id, id))
+      .returning();
 
-  if (error) {
+    revalidatePath(`/admin/forms/${formId}`);
+    return { data };
+  } catch (error) {
     console.error("Error updating block:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath(`/admin/forms/${formId}`);
-  return { data };
 }
 
 export async function deleteBlock(id: string, formId: string) {
-  const { supabase } = await getAdminClient();
+  await requireAdmin();
+  const db = getDb();
 
-  const { error } = await supabase.from("form_blocks").delete().eq("id", id);
-
-  if (error) {
+  try {
+    await db.delete(formBlocks).where(eq(formBlocks.id, id));
+    revalidatePath(`/admin/forms/${formId}`);
+    return { success: true };
+  } catch (error) {
     console.error("Error deleting block:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath(`/admin/forms/${formId}`);
-  return { success: true };
 }
 
 // --- QUESTIONS ---
@@ -183,55 +156,52 @@ export type QuestionPayload = {
 };
 
 export async function createQuestion(payload: QuestionPayload) {
-  const { supabase } = await getAdminClient();
+  await requireAdmin();
+  const db = getDb();
 
-  const { data, error } = await supabase
-    .from("questions")
-    .insert([payload])
-    .select()
-    .single();
+  try {
+    const [data] = await db
+      .insert(questions)
+      .values(payload as typeof questions.$inferInsert)
+      .returning();
 
-  if (error) {
+    revalidatePath(`/admin/forms/${payload.form_id}`);
+    return { data };
+  } catch (error) {
     console.error("Error creating question:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath(`/admin/forms/${payload.form_id}`);
-  return { data };
 }
 
-export async function updateQuestion(
-  id: string,
-  payload: Partial<QuestionPayload>,
-) {
-  const { supabase } = await getAdminClient();
+export async function updateQuestion(id: string, payload: Partial<QuestionPayload>) {
+  await requireAdmin();
+  const db = getDb();
 
-  const { data, error } = await supabase
-    .from("questions")
-    .update(payload)
-    .eq("id", id)
-    .select()
-    .single();
+  try {
+    const [data] = await db
+      .update(questions)
+      .set(payload as Partial<typeof questions.$inferInsert>)
+      .where(eq(questions.id, id))
+      .returning();
 
-  if (error) {
+    revalidatePath(`/admin/forms/${payload.form_id}`);
+    return { data };
+  } catch (error) {
     console.error("Error updating question:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath(`/admin/forms/${payload.form_id}`);
-  return { data };
 }
 
 export async function deleteQuestion(id: string, formId: string) {
-  const { supabase } = await getAdminClient();
+  await requireAdmin();
+  const db = getDb();
 
-  const { error } = await supabase.from("questions").delete().eq("id", id);
-
-  if (error) {
+  try {
+    await db.delete(questions).where(eq(questions.id, id));
+    revalidatePath(`/admin/forms/${formId}`);
+    return { success: true };
+  } catch (error) {
     console.error("Error deleting question:", error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
-
-  revalidatePath(`/admin/forms/${formId}`);
-  return { success: true };
 }

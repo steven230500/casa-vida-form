@@ -1,13 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Plus, Edit, ToggleLeft, ToggleRight, Calendar } from "lucide-react";
+import { desc } from "drizzle-orm";
+import { Plus, Edit, Calendar } from "lucide-react";
+import { getDb } from "@/lib/db";
+import { forms } from "@/lib/db/schema";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminFormsPage() {
-  const supabase = await createClient();
-  const { data: forms } = await supabase
-    .from("forms")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const db = getDb();
+  const formRows = await db.select().from(forms).orderBy(desc(forms.created_at));
 
   return (
     <div className="space-y-6">
@@ -28,7 +29,7 @@ export default async function AdminFormsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {forms?.map((form) => (
+        {formRows.map((form) => (
           <div
             key={form.id}
             className="group relative flex flex-col justify-between rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
@@ -70,7 +71,7 @@ export default async function AdminFormsPage() {
           </div>
         ))}
 
-        {forms?.length === 0 && (
+        {formRows.length === 0 && (
           <div className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-zinc-900/50 rounded-lg border border-dashed border-gray-300 dark:border-zinc-700">
             <p>No hay formularios creados aún.</p>
           </div>
