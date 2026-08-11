@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { forms, responses, answers } from "@/lib/db/schema";
+import { findOrCreatePerson } from "@/lib/people";
 
 // Simple in-memory rate limiting (Note: in production use Vercel KV or Upstash Redis)
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
@@ -144,6 +145,12 @@ export async function POST(request: Request) {
     let responseId: string;
     try {
       responseId = await db.transaction(async (tx) => {
+        const personId = await findOrCreatePerson(tx, {
+          anonymous: anonymous ?? false,
+          name: respondent_name,
+          email: respondent_email,
+        });
+
         const [response] = await tx
           .insert(responses)
           .values({
@@ -152,6 +159,7 @@ export async function POST(request: Request) {
             anonymous: anonymous ?? false,
             respondent_name,
             respondent_email,
+            person_id: personId,
             need_1on1: need_1on1 ?? false,
             preferred_date,
             preferred_time,
