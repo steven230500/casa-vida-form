@@ -79,6 +79,17 @@ export async function updateForm(id: string, formData: FormData) {
         return { error: "Ese enlace corto ya está en uso por otro formulario" };
       }
       update.slug = slug;
+    } else {
+      // Never silently blank out an existing slug (would break QR/NFC
+      // already printed) - only fill it in if this form never had one.
+      const [current] = await db
+        .select({ slug: forms.slug })
+        .from(forms)
+        .where(eq(forms.id, id))
+        .limit(1);
+      if (current && !current.slug) {
+        update.slug = await generateUniqueSlug(title);
+      }
     }
 
     const [data] = await db
