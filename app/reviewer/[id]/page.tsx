@@ -81,6 +81,16 @@ export default async function ResponseDetail(props: {
       );
     }
 
+    if (Array.isArray(value)) {
+      return (
+        <ul className="list-disc list-inside space-y-1 mt-2">
+          {value.map((v, i) => (
+            <li key={i}>{String(v)}</li>
+          ))}
+        </ul>
+      );
+    }
+
     if (typeof value === "object") {
       return (
         <pre className="bg-background p-2 rounded text-sm mt-2">

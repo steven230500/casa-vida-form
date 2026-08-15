@@ -558,6 +558,25 @@ export function FormWizard({
             onChange={(e) => setAnswer(q.id, e.target.value)}
           />
         );
+      case "scale":
+        return (
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setAnswer(q.id, n)}
+                className={`flex-1 rounded-xl border py-3 text-sm font-medium transition-all ${
+                  val === n
+                    ? "border-primary bg-primary/5 text-primary ring-1 ring-primary"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        );
       case "text":
       default:
         return (

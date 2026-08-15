@@ -99,7 +99,9 @@ export default function FormComponent({ form }: { form: FormProps }) {
     // Pre-submit validation
     for (const block of form.blocks) {
       for (const q of block.questions) {
-        if (q.required && !answers[q.id]) {
+        const value = answers[q.id];
+        const isEmpty = Array.isArray(value) ? value.length === 0 : !value;
+        if (q.required && isEmpty) {
           setError(`Falta responder: "${q.label}"`);
           setIsSubmitting(false);
           return;
@@ -197,6 +199,74 @@ export default function FormComponent({ form }: { form: FormProps }) {
                 />
                 <span>{opt}</span>
               </label>
+            ))}
+          </div>
+        );
+      case "checkbox": {
+        const checked: string[] = Array.isArray(value) ? value : [];
+        const toggle = (opt: string) => {
+          handleAnswerChange(
+            q.id,
+            checked.includes(opt)
+              ? checked.filter((o) => o !== opt)
+              : [...checked, opt],
+          );
+        };
+        return (
+          <div className="space-y-2">
+            {(q.options as string[]).map((opt) => (
+              <label
+                key={opt}
+                className="flex items-center space-x-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked.includes(opt)}
+                  onChange={() => toggle(opt)}
+                  className="w-4 h-4 accent-primary"
+                />
+                <span>{opt}</span>
+              </label>
+            ))}
+          </div>
+        );
+      }
+      case "date":
+        return (
+          <input
+            type="date"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+            value={value}
+            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+            required={q.required}
+          />
+        );
+      case "time":
+        return (
+          <input
+            type="time"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+            value={value}
+            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+            required={q.required}
+          />
+        );
+      case "scale":
+        return (
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => handleAnswerChange(q.id, n)}
+                className={`flex-1 rounded-md border py-2.5 text-sm font-medium transition-colors ${
+                  value === n
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                {n}
+              </button>
             ))}
           </div>
         );
