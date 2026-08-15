@@ -2,14 +2,9 @@ import { and, eq, like, ne } from 'drizzle-orm'
 import { getDb } from '@/lib/db'
 import { forms } from '@/lib/db/schema'
 
-export function slugify(title: string) {
-  return title
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-}
+import { slugify } from '@/lib/slugify'
+
+export { slugify }
 
 /** True if `slug` is already used by a different form. */
 export async function isSlugTaken(slug: string, excludeId: string): Promise<boolean> {

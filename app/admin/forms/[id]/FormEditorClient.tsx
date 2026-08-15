@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import ShareLinkCard from "./ShareLinkCard";
+import { keyify } from "@/lib/slugify";
 
 type Form = {
   id: string;
@@ -83,6 +84,9 @@ export default function FormEditorClient({
   const [editingQuestion, setEditingQuestion] =
     useState<Partial<Question> | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [newBlockTitle, setNewBlockTitle] = useState("");
+  const [blockSaving, setBlockSaving] = useState(false);
 
   // --- FORM HANDLERS ---
   const handleSaveForm = async (e: React.FormEvent) => {
@@ -137,17 +141,27 @@ export default function FormEditorClient({
   };
 
   // --- BLOCK HANDLERS ---
-  const handleAddBlock = async () => {
-    const title = prompt("Título de la nueva sección:");
+  const openAddBlockModal = () => {
+    setNewBlockTitle("");
+    setIsBlockModalOpen(true);
+  };
+
+  const handleSaveBlock = async () => {
+    const title = newBlockTitle.trim();
     if (!title) return;
+    setBlockSaving(true);
 
     const order = blocks.length;
     const result = await createBlock(form.id!, title, order);
 
     if (result.error || !result.data) {
       alert(result.error);
+      setBlockSaving(false);
     } else {
       setBlocks([...blocks, result.data]);
+      setIsBlockModalOpen(false);
+      setNewBlockTitle("");
+      setBlockSaving(false);
       router.refresh();
     }
   };
@@ -217,9 +231,24 @@ export default function FormEditorClient({
   };
 
   const handleSaveQuestion = async () => {
-    if (!editingQuestion || !editingQuestion.label || !editingQuestion.key) {
-      alert("Faltan datos obligatorios (Pregunta o Key)");
+    if (!editingQuestion || !editingQuestion.label) {
+      alert("Falta la pregunta");
       return;
+    }
+
+    // Key is derived from the label, not typed by hand - whoever fills this
+    // out has no idea what a "unique identifier" should look like.
+    const base = keyify(editingQuestion.label) || "pregunta";
+    const takenKeys = new Set(
+      questions
+        .filter((q) => q.id !== editingQuestion.id)
+        .map((q) => q.key),
+    );
+    let key = base;
+    let n = 2;
+    while (takenKeys.has(key)) {
+      key = `${base}_${n}`;
+      n += 1;
     }
 
     let optionsToSave = editingQuestion.options;
@@ -227,7 +256,7 @@ export default function FormEditorClient({
     const payload: QuestionPayload = {
       form_id: editingQuestion.form_id!,
       block_id: editingQuestion.block_id!,
-      key: editingQuestion.key.toLowerCase().replace(/\s/g, "_"),
+      key,
       label: editingQuestion.label,
       type: editingQuestion.type || "text",
       options: optionsToSave,
@@ -378,30 +407,6 @@ export default function FormEditorClient({
             />
           </div>
 
-          {!isNew && (
-            <div>
-              <label
-                htmlFor="form-slug"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Enlace corto
-              </label>
-              <div className="mt-1 flex items-center">
-                <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-400">
-                  /f/
-                </span>
-                <input
-                  id="form-slug"
-                  type="text"
-                  value={form.slug || ""}
-                  onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                  className="block w-full rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 sm:text-sm p-2 font-mono"
-                  placeholder="registro-voluntarios"
-                />
-              </div>
-            </div>
-          )}
-
           <div className="flex justify-between items-center pt-4">
             {!isNew && (
               <button
@@ -425,8 +430,6 @@ export default function FormEditorClient({
         </form>
       </div>
 
-      {!isNew && <ShareLinkCard slug={form.slug ?? null} />}
-
       {/* BLOCKS & QUESTIONS EDITOR */}
       {!isNew && (
         <div className="space-y-6">
@@ -435,7 +438,7 @@ export default function FormEditorClient({
               Secciones y Preguntas
             </h2>
             <button
-              onClick={handleAddBlock}
+              onClick={openAddBlockModal}
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-black hover:bg-gray-800 dark:bg-white dark:text-black"
             >
               <Plus className="w-4 h-4 mr-1" />
@@ -561,13 +564,75 @@ export default function FormEditorClient({
             <div className="text-center py-10 bg-gray-50 dark:bg-zinc-900/50 rounded-lg border border-dashed border-gray-300">
               <p className="text-gray-500">No hay secciones creadas.</p>
               <button
-                onClick={handleAddBlock}
+                onClick={openAddBlockModal}
                 className="text-blue-600 hover:underline mt-2 text-sm"
               >
                 Crear primera sección
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Only worth sharing once there's actually something to fill out */}
+      {!isNew && questions.length > 0 && (
+        <ShareLinkCard
+          formId={form.id!}
+          formTitle={form.title || ""}
+          formDescription={form.description ?? null}
+          formIsActive={Boolean(form.is_active)}
+          slug={form.slug ?? null}
+          onSlugChange={(newSlug) => setForm((f) => ({ ...f, slug: newSlug }))}
+        />
+      )}
+
+      {/* BLOCK MODAL */}
+      {isBlockModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Nueva Sección</h3>
+              <button
+                onClick={() => setIsBlockModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Título de la sección
+                </label>
+                <input
+                  type="text"
+                  value={newBlockTitle}
+                  onChange={(e) => setNewBlockTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveBlock()}
+                  className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+                  placeholder="Ej: Datos personales"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-end pt-2 space-x-2">
+                <button
+                  onClick={() => setIsBlockModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md dark:text-gray-200 dark:hover:bg-zinc-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveBlock}
+                  disabled={blockSaving || !newBlockTitle.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-60"
+                >
+                  {blockSaving ? "Creando..." : "Crear Sección"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -606,28 +671,6 @@ export default function FormEditorClient({
                   autoFocus
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Identificador Único (Key)
-                </label>
-                <input
-                  type="text"
-                  value={editingQuestion.key}
-                  onChange={(e) =>
-                    setEditingQuestion({
-                      ...editingQuestion,
-                      key: e.target.value,
-                    })
-                  }
-                  className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700 font-mono text-sm"
-                  placeholder="Ej: nombre_completo"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Debe ser único en el formulario. Se usa para guardar la
-                  respuesta.
-                </p>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">

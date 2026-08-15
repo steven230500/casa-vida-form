@@ -2,12 +2,31 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Copy, Check, Download } from "lucide-react";
+import { Copy, Check, Download, Pencil, X } from "lucide-react";
+import { updateForm } from "@/app/admin/actions";
 
-export default function ShareLinkCard({ slug }: { slug: string | null }) {
+export default function ShareLinkCard({
+  formId,
+  formTitle,
+  formDescription,
+  formIsActive,
+  slug,
+  onSlugChange,
+}: {
+  formId: string;
+  formTitle: string;
+  formDescription: string | null;
+  formIsActive: boolean;
+  slug: string | null;
+  onSlugChange: (slug: string) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [slugInput, setSlugInput] = useState(slug || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -42,17 +61,32 @@ export default function ShareLinkCard({ slug }: { slug: string | null }) {
     link.click();
   }
 
-  if (!slug) {
-    return (
-      <div className="bg-white dark:bg-zinc-900 shadow-sm border border-gray-200 dark:border-zinc-800 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Enlace para compartir
-        </h2>
-        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Guarda el formulario para generar su enlace corto y código QR.
-        </p>
-      </div>
-    );
+  function openEdit() {
+    setSlugInput(slug || "");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function saveSlug() {
+    setSaving(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append("title", formTitle);
+    formData.append("description", formDescription || "");
+    formData.append("is_active", String(formIsActive));
+    formData.append("slug", slugInput);
+    const result = await updateForm(formId, formData);
+
+    if (result.error) {
+      setError(result.error);
+      setSaving(false);
+      return;
+    }
+
+    if (result.data?.slug) onSlugChange(result.data.slug);
+    setSaving(false);
+    setEditing(false);
   }
 
   return (
@@ -71,11 +105,54 @@ export default function ShareLinkCard({ slug }: { slug: string | null }) {
         />
 
         <div className="flex flex-1 flex-col gap-3">
-          <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800">
-            <code className="flex-1 truncate text-sm text-gray-700 dark:text-gray-300">
-              {url || "…"}
-            </code>
-          </div>
+          {editing ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center">
+                <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-400">
+                  /f/
+                </span>
+                <input
+                  type="text"
+                  value={slugInput}
+                  onChange={(e) => setSlugInput(e.target.value)}
+                  className="block w-full rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 sm:text-sm p-2 font-mono"
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveSlug}
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {saving ? "Guardando..." : "Guardar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-gray-200 dark:hover:bg-zinc-800"
+                >
+                  <X className="w-4 h-4" /> Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800">
+              <code className="flex-1 truncate text-sm text-gray-700 dark:text-gray-300">
+                {url || "…"}
+              </code>
+              <button
+                type="button"
+                onClick={openEdit}
+                aria-label="Editar enlace"
+                className="shrink-0 text-gray-400 hover:text-blue-500"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
