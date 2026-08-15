@@ -54,11 +54,20 @@ jobs:
             # so the actual name is discovered here rather than hardcoded.
             INTERNAL_NET=$(docker network ls --filter name=casavida_internal --format '{{.Name}}' | head -1)
 
+            # RESEND_API_KEY isn't a GitHub secret for this repo - it's shared
+            # with casa-vida's own Resend account and was seeded directly into
+            # this droplet's .env by hand. Carry it forward across deploys
+            # instead of wiping it, same as any other manually-set var.
+            EXISTING_RESEND_KEY=$(grep -m1 '^RESEND_API_KEY=' .env 2>/dev/null || true)
+
             # Runtime secrets - written as a single printf, not a heredoc.
             # appleboy/ssh-action wraps every line of this script with its own
             # exit-code tracking (for script_stop), which corrupts multi-line
             # heredoc bodies by injecting garbage between each line.
             printf 'DATABASE_URL=postgres://casavida:%s@casavida-db:5432/casavida\nSESSION_SECRET=%s\nCASAVIDA_INTERNAL_NETWORK=%s\n' "${{ secrets.POSTGRES_PASSWORD }}" "${{ secrets.SESSION_SECRET }}" "$INTERNAL_NET" > .env
+            if [ -n "$EXISTING_RESEND_KEY" ]; then
+              echo "$EXISTING_RESEND_KEY" >> .env
+            fi
 
             # Pull & Up
             $COMPOSE pull

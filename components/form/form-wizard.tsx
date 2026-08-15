@@ -22,6 +22,7 @@ interface Question {
   options?: any;
   required: boolean;
   order: number;
+  condition?: unknown;
 }
 
 interface Block {
@@ -59,7 +60,24 @@ export function FormWizard({
   const [draftId, setDraftId] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  // Honeypot: real visitors never see or fill this field
+  const [website, setWebsite] = useState("");
+  const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+
   const TOTAL_STEPS = blocks.length;
+
+  const isQuestionVisible = useCallback(
+    (q: Question) => {
+      const condition = q.condition as
+        | { questionId: string; equals: string }
+        | null
+        | undefined;
+      if (!condition?.questionId) return true;
+      return answers[condition.questionId] === condition.equals;
+    },
+    [answers],
+  );
 
   // Load from local storage
   useEffect(() => {
@@ -116,29 +134,60 @@ export function FormWizard({
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   }, []);
 
+  const handleFileSelect = useCallback(
+    async (questionId: string, file: File | undefined) => {
+      if (!file) return;
+      setUploadErrors((prev) => ({ ...prev, [questionId]: "" }));
+      setUploadingIds((prev) => new Set(prev).add(questionId));
+
+      const body = new FormData();
+      body.append("file", file);
+      body.append("draft_id", draftId);
+
+      try {
+        const res = await fetch("/api/uploads", { method: "POST", body });
+        const data = await res.json();
+        if (!res.ok)
+          throw new Error(data.error || "No se pudo subir el archivo");
+        setAnswer(questionId, data);
+      } catch (err: any) {
+        setUploadErrors((prev) => ({ ...prev, [questionId]: err.message }));
+      } finally {
+        setUploadingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(questionId);
+          return next;
+        });
+      }
+    },
+    [draftId, setAnswer],
+  );
+
   const handleNext = useCallback(() => {
     // Validate required fields in the current block
     const currentBlock = blocks[currentStep];
-    const missingRequired = currentBlock.questions.find((q) => {
-      if (q.required) {
-        const val = answers[q.id];
-        if (
-          val === undefined ||
-          val === null ||
-          val === "" ||
-          (Array.isArray(val) && val.length === 0)
-        )
-          return true;
-        if (q.type === "points100") {
-          const sum = Object.values(val as Record<string, number>).reduce(
-            (a, b) => a + (Number(b) || 0),
-            0,
-          );
-          if (sum !== 100) return true;
+    const missingRequired = currentBlock.questions
+      .filter(isQuestionVisible)
+      .find((q) => {
+        if (q.required) {
+          const val = answers[q.id];
+          if (
+            val === undefined ||
+            val === null ||
+            val === "" ||
+            (Array.isArray(val) && val.length === 0)
+          )
+            return true;
+          if (q.type === "points100") {
+            const sum = Object.values(val as Record<string, number>).reduce(
+              (a, b) => a + (Number(b) || 0),
+              0,
+            );
+            if (sum !== 100) return true;
+          }
         }
-      }
-      return false;
-    });
+        return false;
+      });
 
     if (missingRequired) {
       alert(
@@ -151,7 +200,7 @@ export function FormWizard({
       setCurrentStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [currentStep, blocks, answers, TOTAL_STEPS]);
+  }, [currentStep, blocks, answers, TOTAL_STEPS, isQuestionVisible]);
 
   const handlePrev = useCallback(() => {
     if (currentStep > 0) {
@@ -164,20 +213,20 @@ export function FormWizard({
     setScreen("loading");
     setErrorMessage("");
 
+    const allQuestions = blocks.flatMap((b) => b.questions);
+
     // Map local answers dict to the array expected by our backend
     const answersToSubmit = Object.entries(answers)
+      .filter(([qId]) => {
+        const q = allQuestions.find((qy) => qy.id === qId);
+        return !q || isQuestionVisible(q);
+      })
       .map(([qId, val]) => {
-        // Find the question type to tag points100 if needed
-        let type;
-        blocks.forEach((b) => {
-          const q = b.questions.find((qy) => qy.id === qId);
-          if (q) type = q.type;
-        });
-
+        const q = allQuestions.find((qy) => qy.id === qId);
         return {
           question_id: qId,
           value: val,
-          type: type === "points100" ? "points100" : undefined,
+          type: q?.type === "points100" ? "points100" : undefined,
         };
       })
       .filter(
@@ -198,10 +247,7 @@ export function FormWizard({
           respondent_name: name || undefined,
           respondent_email: email || undefined,
           answers: answersToSubmit,
-          // Since we generalized the form, these fields from the specific Casa Vida schema
-          // might be handled differently depending on the questions. We're sending them
-          // as regular questions now except if they map directly to these.
-          // In a truly generic form, these properties might be deprecated in favor of just generic questions.
+          website,
         }),
       });
 
@@ -219,7 +265,17 @@ export function FormWizard({
       setErrorMessage(error.message);
       setScreen("error");
     }
-  }, [answers, formId, draftId, mode, name, email, blocks]);
+  }, [
+    answers,
+    formId,
+    draftId,
+    mode,
+    name,
+    email,
+    blocks,
+    website,
+    isQuestionVisible,
+  ]);
 
   const handleReset = useCallback(() => {
     setAnswers({});
@@ -577,6 +633,31 @@ export function FormWizard({
             ))}
           </div>
         );
+      case "file": {
+        const uploaded = val && typeof val === "object" ? val : null;
+        const isUploading = uploadingIds.has(q.id);
+        const uploadError = uploadErrors[q.id];
+        return (
+          <div className="space-y-2">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+              disabled={isUploading}
+              onChange={(e) => handleFileSelect(q.id, e.target.files?.[0])}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
+            />
+            {isUploading && (
+              <p className="text-sm text-muted-foreground">Subiendo...</p>
+            )}
+            {uploaded && !isUploading && (
+              <p className="text-sm text-primary">✓ {uploaded.filename}</p>
+            )}
+            {uploadError && (
+              <p className="text-sm text-destructive">{uploadError}</p>
+            )}
+          </div>
+        );
+      }
       case "text":
       default:
         return (
@@ -605,7 +686,7 @@ export function FormWizard({
           />
 
           <div className="flex flex-col gap-5">
-            {currentBlock.questions.map((q, idx) => (
+            {currentBlock.questions.filter(isQuestionVisible).map((q, idx) => (
               <QuestionCard key={q.id}>
                 <div className="flex flex-col gap-3">
                   <QuestionLabel number={idx + 1} required={q.required}>
@@ -616,6 +697,18 @@ export function FormWizard({
               </QuestionCard>
             ))}
           </div>
+
+          {/* Honeypot: hidden from real users, bots tend to fill every field */}
+          <input
+            type="text"
+            name="website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            className="absolute left-[-9999px] h-0 w-0 opacity-0"
+            aria-hidden="true"
+          />
         </div>
       </main>
 

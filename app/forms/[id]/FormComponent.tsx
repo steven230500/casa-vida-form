@@ -41,6 +41,12 @@ export default function FormComponent({ form }: { form: FormProps }) {
   const [respondentName, setRespondentName] = useState("");
   const [respondentEmail, setRespondentEmail] = useState("");
 
+  // Honeypot: real visitors never see or fill this field
+  const [website, setWebsite] = useState("");
+
+  const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+
   // 1. Load or Create Draft ID and Answers from Local Storage
   useEffect(() => {
     const savedDraftId = localStorage.getItem(`form_draft_id_${form.formId}`);
@@ -83,6 +89,39 @@ export default function FormComponent({ form }: { form: FormProps }) {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  const handleFileSelect = async (
+    questionId: string,
+    file: File | undefined,
+  ) => {
+    if (!file) return;
+    setUploadErrors((prev) => ({ ...prev, [questionId]: "" }));
+    setUploadingIds((prev) => new Set(prev).add(questionId));
+
+    const body = new FormData();
+    body.append("file", file);
+    body.append("draft_id", draftId);
+
+    try {
+      const res = await fetch("/api/uploads", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo subir el archivo");
+      handleAnswerChange(questionId, data);
+    } catch (err: any) {
+      setUploadErrors((prev) => ({ ...prev, [questionId]: err.message }));
+    } finally {
+      setUploadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(questionId);
+        return next;
+      });
+    }
+  };
+
+  const isQuestionVisible = (q: Question) => {
+    if (!q.condition?.questionId) return true;
+    return answers[q.condition.questionId] === q.condition.equals;
+  };
+
   const calculatePoints100Sum = (questionId: string) => {
     const vals = answers[questionId] || {};
     return Object.values(vals).reduce(
@@ -99,6 +138,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
     // Pre-submit validation
     for (const block of form.blocks) {
       for (const q of block.questions) {
+        if (!isQuestionVisible(q)) continue;
         const value = answers[q.id];
         const isEmpty = Array.isArray(value) ? value.length === 0 : !value;
         if (q.required && isEmpty) {
@@ -116,25 +156,24 @@ export default function FormComponent({ form }: { form: FormProps }) {
       }
     }
 
-    // Format answers for API
-    const formattedAnswers = Object.entries(answers).map(
-      ([question_id, value]) => {
-        // Find question to append type for backend validation hints (optional but good practice)
-        const q = form.blocks
-          .flatMap((b) => b.questions)
-          .find((q) => q.id === question_id);
+    // Format answers for API, skipping anything hidden by a condition
+    const allQuestions = form.blocks.flatMap((b) => b.questions);
+    const formattedAnswers = Object.entries(answers)
+      .filter(([question_id]) => {
+        const q = allQuestions.find((q) => q.id === question_id);
+        return !q || isQuestionVisible(q);
+      })
+      .map(([question_id, value]) => {
+        const q = allQuestions.find((q) => q.id === question_id);
         return {
           question_id,
           value,
           type: q?.type,
         };
-      },
-    );
+      });
 
     try {
       const res = await fetch(`/api/responses`, {
-        // Using the updated refactored API route (which we named POST /api/responses actually)
-        // Note: the task said /api/forms/[id]/submit but we already built /api/responses that takes form_id in the body.
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -144,6 +183,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
           respondent_name: respondentName,
           respondent_email: respondentEmail,
           answers: formattedAnswers,
+          website,
         }),
       });
 
@@ -270,6 +310,31 @@ export default function FormComponent({ form }: { form: FormProps }) {
             ))}
           </div>
         );
+      case "file": {
+        const uploaded = value && typeof value === "object" ? value : null;
+        const isUploading = uploadingIds.has(q.id);
+        const uploadError = uploadErrors[q.id];
+        return (
+          <div className="space-y-2">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+              disabled={isUploading}
+              onChange={(e) => handleFileSelect(q.id, e.target.files?.[0])}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
+            />
+            {isUploading && (
+              <p className="text-sm text-muted-foreground">Subiendo...</p>
+            )}
+            {uploaded && !isUploading && (
+              <p className="text-sm text-primary">✓ {uploaded.filename}</p>
+            )}
+            {uploadError && (
+              <p className="text-sm text-destructive">{uploadError}</p>
+            )}
+          </div>
+        );
+      }
       case "points100":
         const currentSum = calculatePoints100Sum(q.id);
         const options = q.options as string[];
@@ -367,7 +432,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
             </h2>
 
             <div className="space-y-8">
-              {block.questions.map((q) => (
+              {block.questions.filter(isQuestionVisible).map((q) => (
                 <div key={q.id} className="space-y-2">
                   <label className="block font-medium">
                     {q.label}{" "}
@@ -387,6 +452,18 @@ export default function FormComponent({ form }: { form: FormProps }) {
             {error}
           </div>
         )}
+
+        {/* Honeypot: hidden from real users, bots tend to fill every field */}
+        <input
+          type="text"
+          name="website"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          aria-hidden="true"
+        />
 
         <button
           type="submit"

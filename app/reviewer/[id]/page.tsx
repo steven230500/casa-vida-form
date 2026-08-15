@@ -69,6 +69,24 @@ export default async function ResponseDetail(props: {
         <span className="text-muted-foreground italic">Sin respuesta</span>
       );
 
+    if (
+      type === "file" &&
+      typeof value === "object" &&
+      "path" in value &&
+      "filename" in value
+    ) {
+      return (
+        <a
+          href={value.path}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center gap-1.5 text-primary underline underline-offset-2"
+        >
+          {value.filename}
+        </a>
+      );
+    }
+
     if (type === "points100") {
       return (
         <ul className="list-disc list-inside space-y-1 mt-2">

@@ -6,6 +6,8 @@ services:
     env_file: .env
     expose:
       - "3000"
+    volumes:
+      - casavida_forms_uploads:/app/.uploads
     networks:
       - infra_infra_network
       - casavida_internal
@@ -19,3 +21,7 @@ networks:
   casavida_internal:
     external: true
     name: ${CASAVIDA_INTERNAL_NETWORK}
+
+volumes:
+  # Uploaded form attachments (photos/PDFs) - must survive redeploys.
+  casavida_forms_uploads:

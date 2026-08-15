@@ -3,40 +3,14 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { forms, responses, answers } from "@/lib/db/schema";
 import { findOrCreatePerson } from "@/lib/people";
-
-// Simple in-memory rate limiting (Note: in production use Vercel KV or Upstash Redis)
-const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
-const RATE_LIMIT = 5; // max 5 submissions
-const WINDOW_MS = 60 * 1000; // per minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimitMap.get(ip);
-
-  if (!record) {
-    rateLimitMap.set(ip, { count: 1, lastReset: now });
-    return false;
-  }
-
-  if (now - record.lastReset > WINDOW_MS) {
-    // Reset window
-    rateLimitMap.set(ip, { count: 1, lastReset: now });
-    return false;
-  }
-
-  if (record.count >= RATE_LIMIT) {
-    return true; // Rate limited
-  }
-
-  record.count += 1;
-  return false;
-}
+import { sendResponseConfirmation } from "@/lib/resend";
+import { isRateLimited, requestIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
     // 0. Rate Limiting Check
-    const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
-    if (isRateLimited(ip)) {
+    const ip = requestIp(request);
+    if (isRateLimited(ip, { max: 5, windowMs: 60 * 1000 })) {
       return NextResponse.json(
         { error: "Too many submissions. Please try again later." },
         { status: 429 },
@@ -54,6 +28,7 @@ export async function POST(request: Request) {
       preferred_date,
       preferred_time,
       answers: submittedAnswers, // Array of { question_id, value, type? }
+      website, // Honeypot: hidden field real users never see or fill
     } = body;
 
     if (
@@ -68,11 +43,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // Honeypot tripped: pretend success so the bot doesn't adapt, but save nothing.
+    if (website) {
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Response submitted successfully",
+          response_id: draft_id,
+        },
+        { status: 201 },
+      );
+    }
+
     const db = getDb();
 
     // 1. Validate Form is Active
     const [form] = await db
       .select({
+        title: forms.title,
         is_active: forms.is_active,
         start_at: forms.start_at,
         end_at: forms.end_at,
@@ -190,6 +178,16 @@ export async function POST(request: Request) {
         { error: "Database error while saving response" },
         { status: 500 },
       );
+    }
+
+    // Best-effort confirmation email - never fail the submission over it.
+    if (respondent_email) {
+      sendResponseConfirmation({
+        to: respondent_email,
+        formTitle: form.title,
+      }).catch((error) => {
+        console.error("Error sending confirmation email:", error);
+      });
     }
 
     return NextResponse.json(

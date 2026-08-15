@@ -37,6 +37,12 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
+# Uploaded form attachments - a volume gets mounted here in production, and
+# Docker inherits ownership from the pre-existing image directory on first
+# mount, so this needs to already belong to nextjs before that happens.
+RUN mkdir .uploads
+RUN chown nextjs:nodejs .uploads
+
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

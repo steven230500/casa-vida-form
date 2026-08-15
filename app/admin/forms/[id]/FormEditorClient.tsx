@@ -53,6 +53,7 @@ type Question = {
   options: any;
   required: boolean;
   order: number;
+  condition: any;
 };
 
 export default function FormEditorClient({
@@ -221,6 +222,7 @@ export default function FormEditorClient({
       label: "",
       key: "",
       options: [],
+      condition: null,
     });
     setIsQuestionModalOpen(true);
   };
@@ -262,6 +264,11 @@ export default function FormEditorClient({
       options: optionsToSave,
       required: editingQuestion.required || false,
       order: editingQuestion.order || 0,
+      condition:
+        editingQuestion.condition?.questionId &&
+        editingQuestion.condition?.equals
+          ? editingQuestion.condition
+          : null,
     };
 
     let result;
@@ -690,6 +697,7 @@ export default function FormEditorClient({
                       Distribución de 100 Puntos
                     </option>
                     <option value="scale">Escala (1-5)</option>
+                    <option value="file">Archivo / Foto</option>
                   </select>
                 </div>
                 <div className="flex items-center pt-6">
@@ -710,12 +718,14 @@ export default function FormEditorClient({
                 </div>
               </div>
 
-              {["radio", "checkbox", "select"].includes(
+              {["radio", "checkbox", "select", "points100"].includes(
                 editingQuestion.type!,
               ) && (
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">
-                    Opciones (una por línea)
+                    {editingQuestion.type === "points100"
+                      ? "Categorías (una por línea)"
+                      : "Opciones (una por línea)"}
                   </label>
                   <textarea
                     value={
@@ -726,10 +736,67 @@ export default function FormEditorClient({
                     onChange={(e) => handleOptionsChange(e.target.value)}
                     rows={4}
                     className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 font-mono text-sm outline-none focus:border-foreground/40"
-                    placeholder="Opción 1&#10;Opción 2&#10;Opción 3"
+                    placeholder={
+                      editingQuestion.type === "points100"
+                        ? "Categoría 1&#10;Categoría 2&#10;Categoría 3"
+                        : "Opción 1&#10;Opción 2&#10;Opción 3"
+                    }
                   />
                 </div>
               )}
+
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">
+                  Mostrar solo si (opcional)
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={editingQuestion.condition?.questionId || ""}
+                    onChange={(e) => {
+                      const questionId = e.target.value;
+                      setEditingQuestion({
+                        ...editingQuestion,
+                        condition: questionId
+                          ? {
+                              questionId,
+                              equals: editingQuestion.condition?.equals || "",
+                            }
+                          : null,
+                      });
+                    }}
+                    className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
+                  >
+                    <option value="">Siempre visible</option>
+                    {questions
+                      .filter((q) => q.id !== editingQuestion.id)
+                      .map((q) => (
+                        <option key={q.id} value={q.id}>
+                          {q.label}
+                        </option>
+                      ))}
+                  </select>
+                  <input
+                    type="text"
+                    disabled={!editingQuestion.condition?.questionId}
+                    value={editingQuestion.condition?.equals || ""}
+                    onChange={(e) =>
+                      setEditingQuestion({
+                        ...editingQuestion,
+                        condition: {
+                          questionId: editingQuestion.condition!.questionId,
+                          equals: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="Responde exactamente..."
+                    className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40 disabled:opacity-40"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Esta pregunta solo aparece si la respuesta elegida arriba
+                  coincide exactamente con el texto de la derecha.
+                </p>
+              </div>
 
               <div className="flex justify-end pt-4 space-x-2">
                 <button
