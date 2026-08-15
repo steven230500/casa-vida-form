@@ -100,13 +100,13 @@ export default function FormComponent({ form }: { form: FormProps }) {
     for (const block of form.blocks) {
       for (const q of block.questions) {
         if (q.required && !answers[q.id]) {
-          setError(`Please answer the required question: "${q.label}"`);
+          setError(`Falta responder: "${q.label}"`);
           setIsSubmitting(false);
           return;
         }
         if (q.type === "points100") {
           if (calculatePoints100Sum(q.id) !== 100) {
-            setError(`Points must sum to exactly 100 for: "${q.label}"`);
+            setError(`Los puntos deben sumar exactamente 100 en: "${q.label}"`);
             setIsSubmitting(false);
             return;
           }
@@ -171,7 +171,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
       case "textarea":
         return (
           <textarea
-            className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
             rows={4}
             value={value}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
@@ -192,7 +192,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
                   value={opt}
                   checked={value === opt}
                   onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                  className="w-4 h-4 text-blue-600"
+                  className="w-4 h-4 accent-primary"
                   required={q.required && !value}
                 />
                 <span>{opt}</span>
@@ -206,9 +206,9 @@ export default function FormComponent({ form }: { form: FormProps }) {
         return (
           <div className="space-y-4">
             <div
-              className={`p-2 rounded text-sm font-bold ${currentSum === 100 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+              className={`p-2 rounded-md text-sm font-medium ${currentSum === 100 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
             >
-              Current Sum: {currentSum} / 100
+              Suma actual: {currentSum} / 100
             </div>
             {options.map((opt) => (
               <div key={opt} className="flex flex-col space-y-1">
@@ -217,7 +217,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
                   type="number"
                   min="0"
                   max="100"
-                  className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
                   value={answers[q.id]?.[opt] || ""}
                   onChange={(e) => {
                     const currentVals = answers[q.id] || {};
@@ -235,7 +235,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
         return (
           <input
             type="text"
-            className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
             value={value}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             required={q.required}
@@ -247,35 +247,41 @@ export default function FormComponent({ form }: { form: FormProps }) {
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">{form.title}</h1>
+        <h1 className="text-3xl font-serif mb-2">{form.title}</h1>
         {form.description && (
-          <p className="text-gray-600 dark:text-gray-300">{form.description}</p>
+          <p className="text-muted-foreground">{form.description}</p>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800">
-          <h2 className="text-xl font-semibold mb-4 border-b pb-2">
-            Your Information (Optional)
-          </h2>
+        <div className="bg-card p-6 rounded-2xl border border-border">
+          <h2 className="text-xl font-semibold mb-1">¿Quién responde?</h2>
+          <p className="text-sm text-muted-foreground mb-4 border-b border-border pb-4">
+            Déjalo en blanco para responder de forma anónima. Si lo llenas,
+            así te identificamos para el seguimiento — no lo repitas más
+            abajo.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
+              <label className="block text-sm font-medium mb-1">Nombre</label>
               <input
                 type="text"
-                className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
                 value={respondentName}
                 onChange={(e) => setRespondentName(e.target.value)}
-                placeholder="Leave blank to remain anonymous"
+                placeholder="Opcional"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
+              <label className="block text-sm font-medium mb-1">
+                Correo electrónico
+              </label>
               <input
                 type="email"
-                className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
                 value={respondentEmail}
                 onChange={(e) => setRespondentEmail(e.target.value)}
+                placeholder="Opcional"
               />
             </div>
           </div>
@@ -284,9 +290,9 @@ export default function FormComponent({ form }: { form: FormProps }) {
         {form.blocks.map((block) => (
           <div
             key={block.id}
-            className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800"
+            className="bg-card p-6 rounded-2xl border border-border"
           >
-            <h2 className="text-xl font-semibold mb-6 border-b pb-2">
+            <h2 className="text-xl font-semibold mb-6 border-b border-border pb-2">
               {block.title}
             </h2>
 
@@ -295,7 +301,9 @@ export default function FormComponent({ form }: { form: FormProps }) {
                 <div key={q.id} className="space-y-2">
                   <label className="block font-medium">
                     {q.label}{" "}
-                    {q.required && <span className="text-red-500">*</span>}
+                    {q.required && (
+                      <span className="text-destructive">*</span>
+                    )}
                   </label>
                   {renderInput(q)}
                 </div>
@@ -305,7 +313,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
         ))}
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+          <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -313,9 +321,9 @@ export default function FormComponent({ form }: { form: FormProps }) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow disabled:opacity-50 transition-colors"
+          className="w-full py-3.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full disabled:opacity-50 transition-colors"
         >
-          {isSubmitting ? "Submitting..." : "Submit Response"}
+          {isSubmitting ? "Enviando..." : "Enviar respuesta"}
         </button>
       </form>
     </div>
