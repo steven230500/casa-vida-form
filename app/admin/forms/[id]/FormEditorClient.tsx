@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createForm,
@@ -55,6 +55,8 @@ type Question = {
   order: number;
   condition: any;
 };
+
+const OPTION_BASED_TYPES = ["radio", "checkbox", "select", "points100"];
 
 export default function FormEditorClient({
   initialForm,
@@ -228,7 +230,16 @@ export default function FormEditorClient({
   };
 
   const openEditQuestionModal = (question: Question) => {
-    setEditingQuestion({ ...question });
+    // Older questions (e.g. points100 before it had an options editor) can
+    // have type=points100 with options=[] - give them a starting pair too
+    // instead of an empty list with nothing to edit.
+    const needsSeedOptions =
+      OPTION_BASED_TYPES.includes(question.type) &&
+      (!Array.isArray(question.options) || question.options.length === 0);
+    setEditingQuestion({
+      ...question,
+      options: needsSeedOptions ? ["", ""] : question.options,
+    });
     setIsQuestionModalOpen(true);
   };
 
@@ -253,7 +264,11 @@ export default function FormEditorClient({
       n += 1;
     }
 
-    let optionsToSave = editingQuestion.options;
+    const optionsToSave = Array.isArray(editingQuestion.options)
+      ? editingQuestion.options
+          .map((opt: string) => opt.trim())
+          .filter((opt: string) => opt !== "")
+      : editingQuestion.options;
 
     const payload: QuestionPayload = {
       form_id: editingQuestion.form_id!,
@@ -354,13 +369,39 @@ export default function FormEditorClient({
     router.refresh();
   };
 
-  // Helper for Options (Textarea to Array)
-  const handleOptionsChange = (text: string) => {
-    if (!text) {
-      setEditingQuestion({ ...editingQuestion, options: [] });
-      return;
+  // --- OPTIONS LIST (radio / checkbox / select / points100) ---
+  const shouldFocusLastOptionRef = useRef(false);
+  const lastOptionInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (shouldFocusLastOptionRef.current && lastOptionInputRef.current) {
+      lastOptionInputRef.current.focus();
+      shouldFocusLastOptionRef.current = false;
     }
-    const opts = text.split("\n").filter((line) => line.trim() !== "");
+  });
+
+  const handleOptionChange = (index: number, value: string) => {
+    const opts = Array.isArray(editingQuestion?.options)
+      ? [...editingQuestion.options]
+      : [];
+    opts[index] = value;
+    setEditingQuestion({ ...editingQuestion, options: opts });
+  };
+
+  const handleAddOption = () => {
+    const opts = Array.isArray(editingQuestion?.options)
+      ? [...editingQuestion.options]
+      : [];
+    opts.push("");
+    shouldFocusLastOptionRef.current = true;
+    setEditingQuestion({ ...editingQuestion, options: opts });
+  };
+
+  const handleRemoveOption = (index: number) => {
+    const opts = Array.isArray(editingQuestion?.options)
+      ? [...editingQuestion.options]
+      : [];
+    opts.splice(index, 1);
     setEditingQuestion({ ...editingQuestion, options: opts });
   };
 
@@ -677,12 +718,21 @@ export default function FormEditorClient({
                   </label>
                   <select
                     value={editingQuestion.type}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      const currentOptionsEmpty =
+                        !Array.isArray(editingQuestion.options) ||
+                        editingQuestion.options.length === 0;
                       setEditingQuestion({
                         ...editingQuestion,
-                        type: e.target.value,
-                      })
-                    }
+                        type: newType,
+                        options:
+                          OPTION_BASED_TYPES.includes(newType) &&
+                          currentOptionsEmpty
+                            ? ["", ""]
+                            : editingQuestion.options,
+                      });
+                    }}
                     className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
                   >
                     <option value="text">Texto Corto</option>
@@ -718,30 +768,70 @@ export default function FormEditorClient({
                 </div>
               </div>
 
-              {["radio", "checkbox", "select", "points100"].includes(
-                editingQuestion.type!,
-              ) && (
+              {OPTION_BASED_TYPES.includes(editingQuestion.type!) && (
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">
                     {editingQuestion.type === "points100"
-                      ? "Categorías (una por línea)"
-                      : "Opciones (una por línea)"}
+                      ? "Categorías"
+                      : "Opciones"}
                   </label>
-                  <textarea
-                    value={
-                      Array.isArray(editingQuestion.options)
-                        ? editingQuestion.options.join("\n")
-                        : ""
-                    }
-                    onChange={(e) => handleOptionsChange(e.target.value)}
-                    rows={4}
-                    className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 font-mono text-sm outline-none focus:border-foreground/40"
-                    placeholder={
-                      editingQuestion.type === "points100"
-                        ? "Categoría 1&#10;Categoría 2&#10;Categoría 3"
-                        : "Opción 1&#10;Opción 2&#10;Opción 3"
-                    }
-                  />
+                  <div className="space-y-2">
+                    {(Array.isArray(editingQuestion.options)
+                      ? editingQuestion.options
+                      : []
+                    ).map((opt: string, index: number, arr: string[]) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2"
+                      >
+                        <span className="w-5 shrink-0 text-center text-xs text-muted-foreground">
+                          {index + 1}
+                        </span>
+                        <input
+                          ref={
+                            index === arr.length - 1
+                              ? lastOptionInputRef
+                              : undefined
+                          }
+                          type="text"
+                          value={opt}
+                          onChange={(e) =>
+                            handleOptionChange(index, e.target.value)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddOption();
+                            }
+                          }}
+                          className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
+                          placeholder={
+                            editingQuestion.type === "points100"
+                              ? `Categoría ${index + 1}`
+                              : `Opción ${index + 1}`
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(index)}
+                          disabled={arr.length <= 1}
+                          className="shrink-0 text-muted-foreground hover:text-destructive disabled:opacity-25 disabled:hover:text-muted-foreground"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddOption}
+                    className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground hover:opacity-70"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {editingQuestion.type === "points100"
+                      ? "Agregar categoría"
+                      : "Agregar opción"}
+                  </button>
                 </div>
               )}
 
