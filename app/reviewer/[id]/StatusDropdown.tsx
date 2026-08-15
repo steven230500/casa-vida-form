@@ -15,10 +15,10 @@ export default function StatusDropdown({
   const [isUpdating, setIsUpdating] = useState(false);
 
   const statuses = [
-    { value: "new", label: "New" },
-    { value: "reviewed", label: "Reviewed" },
-    { value: "followup_pending", label: "Needs Follow-up" },
-    { value: "closed", label: "Closed" },
+    { value: "new", label: "Nuevo" },
+    { value: "reviewed", label: "Revisado" },
+    { value: "followup_pending", label: "Necesita seguimiento" },
+    { value: "closed", label: "Cerrado" },
   ];
 
   const handleStatusChange = async (
@@ -43,7 +43,7 @@ export default function StatusDropdown({
       router.refresh();
     } catch (error) {
       console.error(error);
-      alert("Error saving status. Please try again.");
+      alert("No se pudo guardar el estado. Intenta de nuevo.");
       // Revert status on failure
       setStatus(currentStatus);
     } finally {
@@ -53,12 +53,14 @@ export default function StatusDropdown({
 
   return (
     <div className="flex items-center space-x-3">
-      <span className="text-sm font-medium text-gray-500">Status:</span>
+      <span className="text-sm font-medium text-muted-foreground">
+        Estado:
+      </span>
       <select
         value={status}
         onChange={handleStatusChange}
         disabled={isUpdating}
-        className={`text-sm rounded-lg border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:ring-blue-500 focus:border-blue-500 ${isUpdating ? "opacity-50" : ""}`}
+        className={`text-sm rounded-md border border-foreground/15 bg-background px-2 py-1.5 outline-none focus:border-foreground/40 ${isUpdating ? "opacity-50" : ""}`}
       >
         {statuses.map((s) => (
           <option key={s.value} value={s.value}>
@@ -67,7 +69,9 @@ export default function StatusDropdown({
         ))}
       </select>
       {isUpdating && (
-        <span className="text-xs text-blue-600 animate-pulse">Saving...</span>
+        <span className="text-xs text-muted-foreground animate-pulse">
+          Guardando...
+        </span>
       )}
     </div>
   );

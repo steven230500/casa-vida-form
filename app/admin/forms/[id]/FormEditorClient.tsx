@@ -360,73 +360,69 @@ export default function FormEditorClient({
   return (
     <div className="space-y-8 pb-20">
       {/* FORM DETAILS CARD */}
-      <div className="bg-white dark:bg-zinc-900 shadow-sm border border-gray-200 dark:border-zinc-800 rounded-lg p-6">
-        <form onSubmit={handleSaveForm} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div className="rounded-t-[2.5rem] rounded-b-2xl border border-foreground/10 bg-muted p-8">
+        <form onSubmit={handleSaveForm} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">
                 Título del Formulario
               </label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 sm:text-sm p-2"
+                className="rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm shadow-xs outline-none focus:border-foreground/40"
                 placeholder="Ej: Registro de Voluntarios"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Estado
-              </label>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Estado</label>
               <select
                 value={String(form.is_active)}
                 onChange={(e) =>
                   setForm({ ...form, is_active: e.target.value === "true" })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 sm:text-sm p-2"
+                className="rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm shadow-xs outline-none focus:border-foreground/40"
               >
                 <option value="true">Activo (Público)</option>
                 <option value="false">Inactivo (Oculto)</option>
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Descripción
-            </label>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Descripción</label>
             <textarea
               value={form.description || ""}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
               rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 sm:text-sm p-2"
+              className="rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm shadow-xs outline-none focus:border-foreground/40"
               placeholder="Instrucciones para el usuario..."
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex justify-between items-center pt-2">
             {!isNew && (
               <button
                 type="button"
                 onClick={handleDeleteForm}
-                className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center"
+                className="text-destructive hover:opacity-80 text-sm font-medium flex items-center gap-1.5"
               >
-                <Trash2 className="w-4 h-4 mr-1" />
+                <Trash2 className="w-4 h-4" />
                 Eliminar Formulario
               </button>
             )}
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ml-auto"
+              className="inline-flex items-center justify-center rounded-full bg-foreground px-7 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-60 ml-auto"
             >
               {loading ? "Guardando..." : "Guardar Cambios"}
             </button>
           </div>
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+          {error && <p className="text-destructive text-sm">{error}</p>}
         </form>
       </div>
 
@@ -434,14 +430,12 @@ export default function FormEditorClient({
       {!isNew && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Secciones y Preguntas
-            </h2>
+            <h2 className="text-lg font-semibold">Secciones y Preguntas</h2>
             <button
               onClick={openAddBlockModal}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-black hover:bg-gray-800 dark:bg-white dark:text-black"
+              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background transition-colors hover:bg-foreground/90"
             >
-              <Plus className="w-4 h-4 mr-1" />
+              <Plus className="w-4 h-4" />
               Nueva Sección
             </button>
           </div>
@@ -453,36 +447,34 @@ export default function FormEditorClient({
             return (
               <div
                 key={block.id}
-                className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg p-4"
+                className="rounded-2xl border border-foreground/10 bg-muted p-5"
               >
-                <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-400 font-mono text-xs w-4">
+                <div className="flex items-center justify-between mb-4 border-b border-foreground/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground font-mono text-xs w-4">
                       {blockIndex + 1}
                     </span>
-                    <h3 className="font-bold text-md text-gray-800 dark:text-gray-200">
-                      {block.title}
-                    </h3>
+                    <h3 className="font-semibold text-md">{block.title}</h3>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <button
                       disabled={blockIndex === 0}
                       onClick={() => handleMoveBlock(blockIndex, "up")}
-                      className="text-gray-400 hover:text-gray-600 disabled:opacity-25"
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-25"
                     >
                       <ChevronUp className="w-4 h-4" />
                     </button>
                     <button
                       disabled={blockIndex === blocks.length - 1}
                       onClick={() => handleMoveBlock(blockIndex, "down")}
-                      className="text-gray-400 hover:text-gray-600 disabled:opacity-25"
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-25"
                     >
                       <ChevronDown className="w-4 h-4" />
                     </button>
-                    <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                    <div className="w-px h-4 bg-foreground/15 mx-1"></div>
                     <button
                       onClick={() => handleDeleteBlock(block.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -494,38 +486,36 @@ export default function FormEditorClient({
                   {blockQuestions.map((q, qIndex) => (
                     <div
                       key={q.id}
-                      className="flex items-center justify-between bg-gray-50 dark:bg-zinc-800/50 p-3 rounded-md border border-gray-100 dark:border-zinc-700 group"
+                      className="flex items-center justify-between bg-background p-3 rounded-md border border-foreground/10 group"
                     >
                       <div className="flex items-center space-x-3">
                         <div className="flex flex-col items-center space-y-1">
                           <button
                             disabled={qIndex === 0}
                             onClick={() => handleMoveQuestion(q, "up")}
-                            className="text-gray-300 hover:text-gray-500 disabled:opacity-0"
+                            className="text-muted-foreground/60 hover:text-muted-foreground disabled:opacity-0"
                           >
                             <ChevronUp className="w-3 h-3" />
                           </button>
                           <button
                             disabled={qIndex === blockQuestions.length - 1}
                             onClick={() => handleMoveQuestion(q, "down")}
-                            className="text-gray-300 hover:text-gray-500 disabled:opacity-0"
+                            className="text-muted-foreground/60 hover:text-muted-foreground disabled:opacity-0"
                           >
                             <ChevronDown className="w-3 h-3" />
                           </button>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {q.label}
-                          </p>
-                          <div className="flex items-center space-x-2 text-xs text-gray-500">
-                            <span className="bg-gray-200 dark:bg-zinc-700 px-1.5 rounded">
+                          <p className="text-sm font-medium">{q.label}</p>
+                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                            <span className="bg-muted px-1.5 rounded">
                               {q.type}
                             </span>
-                            <span className="font-mono text-gray-400">
+                            <span className="font-mono text-muted-foreground/70">
                               {q.key}
                             </span>
                             {q.required && (
-                              <span className="text-red-500 font-medium">
+                              <span className="text-destructive font-medium">
                                 *Requerido
                               </span>
                             )}
@@ -535,13 +525,13 @@ export default function FormEditorClient({
                       <div className="flex items-center space-x-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => openEditQuestionModal(q)}
-                          className="text-gray-400 hover:text-blue-500 p-1"
+                          className="text-muted-foreground hover:text-foreground p-1"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteQuestion(q.id)}
-                          className="text-gray-400 hover:text-red-500 p-1"
+                          className="text-muted-foreground hover:text-destructive p-1"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -550,9 +540,9 @@ export default function FormEditorClient({
                   ))}
                   <button
                     onClick={() => openAddQuestionModal(block.id)}
-                    className="w-full py-2 border-2 border-dashed border-gray-200 dark:border-zinc-700 rounded-md text-gray-500 hover:text-blue-500 hover:border-blue-200 text-sm font-medium flex items-center justify-center transition-colors"
+                    className="w-full py-2 border-2 border-dashed border-foreground/15 rounded-md text-muted-foreground hover:text-foreground hover:border-foreground/30 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4" />
                     Agregar Pregunta
                   </button>
                 </div>
@@ -561,11 +551,13 @@ export default function FormEditorClient({
           })}
 
           {blocks.length === 0 && (
-            <div className="text-center py-10 bg-gray-50 dark:bg-zinc-900/50 rounded-lg border border-dashed border-gray-300">
-              <p className="text-gray-500">No hay secciones creadas.</p>
+            <div className="text-center py-10 bg-muted rounded-2xl border border-dashed border-foreground/15">
+              <p className="text-muted-foreground">
+                No hay secciones creadas.
+              </p>
               <button
                 onClick={openAddBlockModal}
-                className="text-blue-600 hover:underline mt-2 text-sm"
+                className="text-foreground underline underline-offset-4 mt-2 text-sm"
               >
                 Crear primera sección
               </button>
@@ -588,21 +580,21 @@ export default function FormEditorClient({
 
       {/* BLOCK MODAL */}
       {isBlockModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-foreground/10 shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Nueva Sección</h3>
+              <h3 className="text-lg font-semibold">Nueva Sección</h3>
               <button
                 onClick={() => setIsBlockModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">
                   Título de la sección
                 </label>
                 <input
@@ -610,7 +602,7 @@ export default function FormEditorClient({
                   value={newBlockTitle}
                   onChange={(e) => setNewBlockTitle(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSaveBlock()}
-                  className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+                  className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
                   placeholder="Ej: Datos personales"
                   autoFocus
                 />
@@ -619,14 +611,14 @@ export default function FormEditorClient({
               <div className="flex justify-end pt-2 space-x-2">
                 <button
                   onClick={() => setIsBlockModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md dark:text-gray-200 dark:hover:bg-zinc-800"
+                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-md"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSaveBlock}
                   disabled={blockSaving || !newBlockTitle.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-60"
+                  className="px-4 py-2 text-sm font-medium text-background bg-foreground hover:bg-foreground/90 rounded-full disabled:opacity-60"
                 >
                   {blockSaving ? "Creando..." : "Crear Sección"}
                 </button>
@@ -638,23 +630,23 @@ export default function FormEditorClient({
 
       {/* QUESTION MODAL */}
       {isQuestionModalOpen && editingQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-foreground/10 shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">
+              <h3 className="text-lg font-semibold">
                 {editingQuestion.id ? "Editar Pregunta" : "Nueva Pregunta"}
               </h3>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">
                   Pregunta (Label)
                 </label>
                 <input
@@ -666,14 +658,14 @@ export default function FormEditorClient({
                       label: e.target.value,
                     })
                   }
-                  className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+                  className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
                   placeholder="Ej: ¿Cuál es tu nombre?"
                   autoFocus
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
                     Tipo de Respuesta
                   </label>
                   <select
@@ -684,7 +676,7 @@ export default function FormEditorClient({
                         type: e.target.value,
                       })
                     }
-                    className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700"
+                    className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
                   >
                     <option value="text">Texto Corto</option>
                     <option value="textarea">Texto Largo</option>
@@ -701,7 +693,7 @@ export default function FormEditorClient({
                   </select>
                 </div>
                 <div className="flex items-center pt-6">
-                  <label className="flex items-center space-x-2 cursor-pointer">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={editingQuestion.required}
@@ -711,7 +703,7 @@ export default function FormEditorClient({
                           required: e.target.checked,
                         })
                       }
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                      className="rounded border-foreground/25 text-foreground focus:ring-foreground/40 w-4 h-4"
                     />
                     <span className="text-sm font-medium">Es obligatoria</span>
                   </label>
@@ -721,8 +713,8 @@ export default function FormEditorClient({
               {["radio", "checkbox", "select"].includes(
                 editingQuestion.type!,
               ) && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
                     Opciones (una por línea)
                   </label>
                   <textarea
@@ -733,7 +725,7 @@ export default function FormEditorClient({
                     }
                     onChange={(e) => handleOptionsChange(e.target.value)}
                     rows={4}
-                    className="w-full p-2 border rounded-md dark:bg-zinc-800 dark:border-zinc-700 font-mono text-sm"
+                    className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 font-mono text-sm outline-none focus:border-foreground/40"
                     placeholder="Opción 1&#10;Opción 2&#10;Opción 3"
                   />
                 </div>
@@ -742,13 +734,13 @@ export default function FormEditorClient({
               <div className="flex justify-end pt-4 space-x-2">
                 <button
                   onClick={() => setIsQuestionModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md dark:text-gray-200 dark:hover:bg-zinc-800"
+                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-md"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSaveQuestion}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-background bg-foreground hover:bg-foreground/90 rounded-full"
                 >
                   Guardar Pregunta
                 </button>

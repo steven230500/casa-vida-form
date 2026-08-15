@@ -78,6 +78,9 @@
   --font-sans: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
   --font-serif: var(--font-dm-serif), 'DM Serif Display', Georgia, serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-beige: var(--beige, #e3d6c5);
+  --color-beige-foreground: var(--beige-foreground, #0a0a0a);
+  --color-beige-muted: var(--beige-muted, #eee6db);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -123,4 +126,36 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/*
+ * Scoped to the admin/reviewer panel only - matches casa-vida's admin
+ * palette exactly (same hex values as its app/globals.css) so both
+ * apps' back-office tools read as one product. The public form-filling
+ * pages keep their own warm DM Sans/Serif branding untouched.
+ */
+.admin-theme {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --secondary: #e3d6c5;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f4efe8;
+  --muted-foreground: #6b6152;
+  --accent: #e3d6c5;
+  --accent-foreground: #0a0a0a;
+  --border: rgba(10, 10, 10, 0.1);
+  --input: rgba(10, 10, 10, 0.14);
+  --ring: rgba(10, 10, 10, 0.35);
+  --beige: #e3d6c5;
+  --beige-foreground: #0a0a0a;
+  --beige-muted: #eee6db;
+
+  background: var(--background);
+  color: var(--foreground);
 }

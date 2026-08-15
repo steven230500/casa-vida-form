@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { getDb } from "@/lib/db";
 import { responses, forms } from "@/lib/db/schema";
 
@@ -42,94 +43,84 @@ export default async function ReviewerDashboard() {
     (r) => r.status === "followup_pending",
   ).length;
 
+  const statusLabels: Record<string, string> = {
+    new: "Nuevo",
+    reviewed: "Revisado",
+    followup_pending: "Necesita seguimiento",
+    closed: "Cerrado",
+  };
+
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "new":
-        return (
-          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-            New
-          </span>
-        );
-      case "reviewed":
-        return (
-          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
-            Reviewed
-          </span>
-        );
-      case "followup_pending":
-        return (
-          <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full font-medium">
-            Needs Follow-up
-          </span>
-        );
-      case "closed":
-        return (
-          <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
-            Closed
-          </span>
-        );
-      default:
-        return null;
-    }
+    const label = statusLabels[status];
+    if (!label) return null;
+    return (
+      <span
+        className={`px-2.5 py-0.5 text-[11px] rounded-full font-medium uppercase tracking-wide ${
+          status === "new"
+            ? "bg-beige text-beige-foreground"
+            : "bg-background text-muted-foreground"
+        }`}
+      >
+        {label}
+      </span>
+    );
   };
 
   return (
     <div className="space-y-8">
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800">
-          <div className="text-gray-500 text-sm font-medium mb-1">
-            Total Responses
+        <div className="rounded-2xl border border-foreground/10 bg-muted p-6">
+          <div className="text-muted-foreground text-sm font-medium mb-1">
+            Respuestas totales
           </div>
-          <div className="text-3xl font-bold">{total}</div>
+          <div className="text-3xl font-semibold">{total}</div>
         </div>
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-blue-100 dark:border-blue-900">
-          <div className="text-blue-600 dark:text-blue-400 text-sm font-medium mb-1">
-            New
+        <div className="rounded-2xl border border-foreground/10 bg-muted p-6">
+          <div className="text-muted-foreground text-sm font-medium mb-1">
+            Nuevas
           </div>
-          <div className="text-3xl font-bold">{newCount}</div>
+          <div className="text-3xl font-semibold">{newCount}</div>
         </div>
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-orange-100 dark:border-orange-900 relative">
-          <div className="text-orange-600 dark:text-orange-400 text-sm font-medium mb-1">
-            Needs Follow-up
+        <div className="rounded-2xl border border-foreground/10 bg-muted p-6">
+          <div className="text-muted-foreground text-sm font-medium mb-1">
+            Necesitan seguimiento
           </div>
-          <div className="text-3xl font-bold">{pendingFollowups}</div>
+          <div className="text-3xl font-semibold">{pendingFollowups}</div>
         </div>
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-purple-100 dark:border-purple-900">
-          <div className="text-purple-600 dark:text-purple-400 text-sm font-medium mb-1">
-            Requested 1-on-1
+        <div className="rounded-2xl border border-foreground/10 bg-muted p-6">
+          <div className="text-muted-foreground text-sm font-medium mb-1">
+            Pidieron 1 a 1
           </div>
-          <div className="text-3xl font-bold">{needs1on1Count}</div>
+          <div className="text-3xl font-semibold">{needs1on1Count}</div>
         </div>
       </div>
 
       {/* Grouped Responses */}
       <div className="space-y-6">
         {Object.keys(groupedResponses).length === 0 ? (
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 p-8 text-center text-gray-500">
-            No responses yet.
+          <div className="rounded-2xl border border-foreground/10 bg-muted p-8 text-center text-muted-foreground">
+            No hay respuestas todavía.
           </div>
         ) : (
           Object.entries(groupedResponses).map(([formTitle, formResponses]) => (
             <div
               key={formTitle}
-              className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden"
+              className="rounded-2xl border border-foreground/10 bg-muted overflow-hidden"
             >
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center bg-gray-50/50 dark:bg-zinc-900/50">
+              <div className="px-6 py-4 border-b border-foreground/10 flex justify-between items-center">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">
-                    {formTitle}
-                  </span>
-                  <span className="text-xs font-normal text-gray-500 bg-gray-200 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                  <span>{formTitle}</span>
+                  <span className="text-xs font-normal text-muted-foreground bg-background px-2 py-0.5 rounded-full">
                     {formResponses.length}
                   </span>
                 </h2>
               </div>
-              <ul className="divide-y divide-gray-100 dark:divide-zinc-800">
+              <ul className="divide-y divide-foreground/10">
                 {formResponses.map((res) => (
                   <li
                     key={res.id}
-                    className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                    className="hover:bg-background/60 transition-colors"
                   >
                     <Link
                       href={`/reviewer/${res.id}`}
@@ -137,7 +128,7 @@ export default async function ReviewerDashboard() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-beige flex items-center justify-center text-beige-foreground font-semibold shrink-0">
                             {res.anonymous
                               ? "A"
                               : (
@@ -147,27 +138,29 @@ export default async function ReviewerDashboard() {
 
                           <div>
                             <div className="flex items-center space-x-2">
-                              <span className="font-semibold text-gray-900 dark:text-white">
+                              <span className="font-semibold">
                                 {res.anonymous
-                                  ? "Anonymous User"
-                                  : res.respondent_name || "Unnamed User"}
+                                  ? "Usuario anónimo"
+                                  : res.respondent_name || "Sin nombre"}
                               </span>
                               {getStatusBadge(res.status)}
                               {res.need_1on1 && (
-                                <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] rounded-full uppercase tracking-wider font-bold">
-                                  1-on-1
+                                <span className="px-2 py-0.5 border border-foreground/15 text-[10px] rounded-full uppercase tracking-wider font-semibold">
+                                  1 a 1
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center space-x-2">
+                            <div className="text-sm text-muted-foreground mt-1 flex items-center space-x-2">
                               <span>
-                                {format(res.created_at, "MMM d, yyyy h:mm a")}
+                                {format(res.created_at, "d MMM yyyy, h:mm a", {
+                                  locale: es,
+                                })}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-gray-400">
+                        <div className="text-muted-foreground">
                           <svg
                             className="h-5 w-5"
                             fill="none"

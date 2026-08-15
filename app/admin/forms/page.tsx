@@ -14,16 +14,16 @@ export default async function AdminFormsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Formularios</h1>
-          <p className="text-gray-500 dark:text-gray-400">
+          <h1 className="text-2xl font-semibold tracking-tight">Formularios</h1>
+          <p className="text-sm text-muted-foreground">
             Gestiona y crea nuevos formularios dinámicos
           </p>
         </div>
         <Link
           href="/admin/forms/new"
-          className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black dark:bg-white dark:text-black dark:hover:bg-gray-200 transition-colors"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Crear Formulario
         </Link>
       </div>
@@ -32,25 +32,25 @@ export default async function AdminFormsPage() {
         {formRows.map((form) => (
           <div
             key={form.id}
-            className="group relative flex flex-col justify-between rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+            className="group relative flex flex-col justify-between rounded-2xl border border-foreground/10 bg-muted p-6 transition-colors hover:bg-muted/70"
           >
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide ${
                     form.is_active
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+                      ? "bg-beige text-beige-foreground"
+                      : "bg-background text-muted-foreground"
                   }`}
                 >
                   {form.is_active ? "Activo" : "Inactivo"}
                 </span>
-                <span className="text-xs text-gray-500 flex items-center">
+                <span className="text-xs text-muted-foreground flex items-center">
                   <Calendar className="w-3 h-3 mr-1" />
                   {new Date(form.created_at).toLocaleDateString()}
                 </span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h3 className="text-lg font-semibold mb-1 transition-colors">
                 <Link
                   href={`/admin/forms/${form.id}`}
                   className="focus:outline-none"
@@ -59,12 +59,12 @@ export default async function AdminFormsPage() {
                   {form.title}
                 </Link>
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+              <p className="text-sm text-muted-foreground line-clamp-2">
                 {form.description || "Sin descripción"}
               </p>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center text-sm text-blue-600 dark:text-blue-400 font-medium">
+            <div className="mt-4 pt-4 border-t border-foreground/10 flex items-center text-sm font-medium">
               <Edit className="w-4 h-4 mr-2" />
               Editar Formulario
             </div>
@@ -72,7 +72,7 @@ export default async function AdminFormsPage() {
         ))}
 
         {formRows.length === 0 && (
-          <div className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-zinc-900/50 rounded-lg border border-dashed border-gray-300 dark:border-zinc-700">
+          <div className="col-span-full py-12 text-center text-muted-foreground bg-muted rounded-2xl border border-dashed border-foreground/15">
             <p>No hay formularios creados aún.</p>
           </div>
         )}

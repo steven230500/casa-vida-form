@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { getDb } from "@/lib/db";
 import { responses, forms, answers, questions, formBlocks, users } from "@/lib/db/schema";
 import StatusDropdown from "./StatusDropdown";
@@ -64,7 +65,9 @@ export default async function ResponseDetail(props: {
 
   const renderValue = (value: any, type: string | null) => {
     if (!value)
-      return <span className="text-gray-400 italic">No answer provided</span>;
+      return (
+        <span className="text-muted-foreground italic">Sin respuesta</span>
+      );
 
     if (type === "points100") {
       return (
@@ -80,7 +83,7 @@ export default async function ResponseDetail(props: {
 
     if (typeof value === "object") {
       return (
-        <pre className="bg-gray-100 dark:bg-zinc-800 p-2 rounded text-sm mt-2">
+        <pre className="bg-background p-2 rounded text-sm mt-2">
           {JSON.stringify(value, null, 2)}
         </pre>
       );
@@ -95,25 +98,25 @@ export default async function ResponseDetail(props: {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <Link
           href="/reviewer"
-          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium flex items-center"
+          className="text-foreground font-medium flex items-center hover:opacity-70"
         >
-          &larr; Back to Inbox
+          &larr; Volver a la bandeja
         </Link>
         <StatusDropdown responseId={response.id} currentStatus={response.status} />
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
+      <div className="rounded-2xl border border-foreground/10 bg-muted overflow-hidden">
         {/* Profile Card Header */}
-        <div className="p-6 md:p-8 bg-blue-50/50 dark:bg-blue-900/10 border-b border-gray-100 dark:border-zinc-800">
+        <div className="p-6 md:p-8 bg-beige/40 border-b border-foreground/10">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-2xl font-semibold mb-2">
                 {response.anonymous
-                  ? "Anonymous Submission"
-                  : response.respondent_name || "Unnamed User"}
+                  ? "Envío anónimo"
+                  : response.respondent_name || "Sin nombre"}
               </h1>
               {response.respondent_email && (
-                <div className="text-gray-600 dark:text-gray-400 flex items-center space-x-2">
+                <div className="text-muted-foreground flex items-center space-x-2">
                   <span>✉️</span>
                   <a
                     href={`mailto:${response.respondent_email}`}
@@ -123,38 +126,43 @@ export default async function ResponseDetail(props: {
                   </a>
                 </div>
               )}
-              <div className="text-sm text-gray-500 dark:text-gray-500 mt-4 flex items-center space-x-2">
+              <div className="text-sm text-muted-foreground mt-4 flex items-center space-x-2">
                 <span>
-                  Submitted: {format(response.created_at, "PPP 'at' p")}
+                  Enviado:{" "}
+                  {format(response.created_at, "PPP 'a las' p", {
+                    locale: es,
+                  })}
                 </span>
               </div>
               {response.reviewed_at && response.reviewer_name && (
-                <div className="text-sm text-gray-500 dark:text-gray-500 mt-1 flex items-center space-x-2">
+                <div className="text-sm text-muted-foreground mt-1 flex items-center space-x-2">
                   <span>
-                    ✓ Last reviewed by {response.reviewer_name} on{" "}
-                    {format(response.reviewed_at, "MMM d, h:mm a")}
+                    ✓ Revisado por {response.reviewer_name} el{" "}
+                    {format(response.reviewed_at, "d MMM, h:mm a", {
+                      locale: es,
+                    })}
                   </span>
                 </div>
               )}
             </div>
 
             {/* Form & 1on1 context */}
-            <div className="bg-white dark:bg-zinc-800 p-4 rounded-lg shadow-sm w-full md:w-auto md:min-w-[250px] space-y-3 border border-gray-100 dark:border-zinc-700">
+            <div className="bg-background p-4 rounded-xl w-full md:w-auto md:min-w-[250px] space-y-3 border border-foreground/10">
               <div>
-                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                  Form
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Formulario
                 </div>
                 <div className="font-medium">{response.form_title}</div>
               </div>
               {response.need_1on1 && (
-                <div className="pt-2 border-t border-gray-100 dark:border-zinc-700">
-                  <div className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase tracking-wider flex items-center space-x-1">
-                    <span>Requested 1-on-1</span>
+                <div className="pt-2 border-t border-foreground/10">
+                  <div className="text-xs font-semibold uppercase tracking-wider flex items-center space-x-1">
+                    <span>Pidió 1 a 1</span>
                   </div>
                   {(response.preferred_date || response.preferred_time) && (
                     <div className="text-sm mt-1">
-                      Prefers: {response.preferred_date || "Any day"} at{" "}
-                      {response.preferred_time || "any time"}
+                      Prefiere: {response.preferred_date || "Cualquier día"} a
+                      las {response.preferred_time || "cualquier hora"}
                     </div>
                   )}
                 </div>
@@ -167,22 +175,17 @@ export default async function ResponseDetail(props: {
         <div className="p-6 md:p-8 space-y-10">
           {Object.entries(groupedAnswers).map(([blockTitle, blockAnswers]) => (
             <div key={blockTitle}>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 border-b pb-2 flex items-center space-x-2">
-                <span className="bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded text-xs">
-                  Section
+              <h2 className="text-lg font-semibold mb-4 border-b border-foreground/10 pb-2 flex items-center space-x-2">
+                <span className="bg-background text-muted-foreground px-2 py-0.5 rounded text-xs">
+                  Sección
                 </span>
                 <span>{blockTitle}</span>
               </h2>
               <ul className="space-y-6">
                 {blockAnswers.map((ans) => (
-                  <li
-                    key={ans.id}
-                    className="bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-4"
-                  >
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">
-                      {ans.question_label}
-                    </p>
-                    <div className="text-gray-700 dark:text-gray-300">
+                  <li key={ans.id} className="bg-background rounded-xl p-4">
+                    <p className="font-semibold">{ans.question_label}</p>
+                    <div className="text-foreground/80">
                       {renderValue(ans.value, ans.question_type)}
                     </div>
                   </li>
@@ -192,8 +195,8 @@ export default async function ResponseDetail(props: {
           ))}
 
           {Object.keys(groupedAnswers).length === 0 && (
-            <div className="text-center text-gray-500 py-12">
-              No questions were answered in this submission.
+            <div className="text-center text-muted-foreground py-12">
+              No se respondió ninguna pregunta en este envío.
             </div>
           )}
         </div>

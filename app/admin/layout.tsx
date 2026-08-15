@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signout } from "@/app/login/actions";
-import { LogOut, LayoutDashboard, FileText } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { LogoMark } from "@/components/brand/logo-mark";
 
 export default function AdminLayout({
   children,
@@ -8,41 +9,40 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black font-sans text-gray-900 dark:text-gray-100">
-      {/* Top Navigation Bar */}
-      <header className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-sm sticky top-0 z-10">
+    <div className="admin-theme min-h-screen bg-background font-sans text-foreground">
+      <header className="border-b border-foreground/10 bg-background sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link href="/admin/forms" className="flex items-center space-x-2">
-                <LayoutDashboard className="w-6 h-6" />
-                <span className="font-bold text-lg tracking-tight">
-                  Admin Panel
+              <Link href="/admin/forms" className="flex items-center gap-2">
+                <LogoMark className="size-6" strokeWidth={5} />
+                <span className="font-semibold text-sm tracking-[0.2em] uppercase">
+                  Admin
                 </span>
               </Link>
-              <nav className="ml-10 hidden md:flex space-x-8 items-center">
+              <nav className="ml-10 hidden md:flex space-x-6 items-center">
                 <Link
                   href="/admin/forms"
-                  className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors flex items-center space-x-1"
+                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
                 >
-                  <FileText className="w-4 h-4" />
-                  <span>Forms</span>
+                  Formularios
                 </Link>
                 <Link
                   href="/reviewer"
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 px-3 py-2 text-sm font-medium transition-colors flex items-center space-x-1 border border-blue-200 dark:border-blue-900 rounded-full bg-blue-50 dark:bg-blue-900/20"
+                  className="rounded-full border border-foreground/15 bg-beige px-4 py-1.5 text-sm font-medium text-beige-foreground transition-colors hover:bg-beige/70"
                 >
-                  <span>📋 Reviewer Panel</span>
+                  Panel de Revisión
                 </Link>
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-400 mr-2">Admin Mode</div>
-              {/* Logout button */}
+              <span className="text-sm text-muted-foreground">
+                Modo administrador
+              </span>
               <form action={signout}>
                 <button
                   type="submit"
-                  className="flex items-center space-x-2 text-sm text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 font-medium transition-colors"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-medium transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Salir</span>
@@ -53,7 +53,6 @@ export default function AdminLayout({
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
