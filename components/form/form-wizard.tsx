@@ -370,12 +370,14 @@ export function FormWizard({
                   placeholder="Tu Nombre (Opcional)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  className="h-11"
                 />
                 <Input
                   type="email"
                   placeholder="Tu Correo (Opcional pero recomendado)"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="h-11"
                 />
               </div>
             )}
@@ -588,7 +590,7 @@ export function FormWizard({
                           );
                           setAnswer(q.id, { ...pointsObj, [cat]: num });
                         }}
-                        className="text-center font-medium"
+                        className="h-11 text-center font-medium"
                       />
                     </div>
                   </div>
@@ -604,6 +606,7 @@ export function FormWizard({
             type="date"
             value={val || ""}
             onChange={(e) => setAnswer(q.id, e.target.value)}
+            className="h-11"
           />
         );
       case "time":
@@ -612,6 +615,7 @@ export function FormWizard({
             type="time"
             value={val || ""}
             onChange={(e) => setAnswer(q.id, e.target.value)}
+            className="h-11"
           />
         );
       case "scale":
@@ -644,7 +648,7 @@ export function FormWizard({
               accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
               disabled={isUploading}
               onChange={(e) => handleFileSelect(q.id, e.target.files?.[0])}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
+              className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm"
             />
             {isUploading && (
               <p className="text-sm text-muted-foreground">Subiendo...</p>
@@ -665,6 +669,7 @@ export function FormWizard({
             type="text"
             value={val || ""}
             onChange={(e) => setAnswer(q.id, e.target.value)}
+            className="h-11"
           />
         );
     }

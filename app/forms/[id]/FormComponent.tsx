@@ -213,7 +213,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
       case "textarea":
         return (
           <textarea
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+            className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
             rows={4}
             value={value}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
@@ -275,7 +275,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
         return (
           <input
             type="date"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+            className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
             value={value}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             required={q.required}
@@ -285,7 +285,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
         return (
           <input
             type="time"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+            className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
             value={value}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             required={q.required}
@@ -321,7 +321,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
               accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
               disabled={isUploading}
               onChange={(e) => handleFileSelect(q.id, e.target.files?.[0])}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
+              className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm"
             />
             {isUploading && (
               <p className="text-sm text-muted-foreground">Subiendo...</p>
@@ -352,7 +352,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
                   type="number"
                   min="0"
                   max="100"
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+                  className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
                   value={answers[q.id]?.[opt] || ""}
                   onChange={(e) => {
                     const currentVals = answers[q.id] || {};
@@ -370,7 +370,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
         return (
           <input
             type="text"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+            className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
             value={value}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             required={q.required}
@@ -401,7 +401,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
               <label className="block text-sm font-medium mb-1">Nombre</label>
               <input
                 type="text"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+                className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
                 value={respondentName}
                 onChange={(e) => setRespondentName(e.target.value)}
                 placeholder="Opcional"
@@ -413,7 +413,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
               </label>
               <input
                 type="email"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/50"
+                className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
                 value={respondentEmail}
                 onChange={(e) => setRespondentEmail(e.target.value)}
                 placeholder="Opcional"
