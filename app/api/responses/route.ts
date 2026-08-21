@@ -1,10 +1,49 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { forms, responses, answers } from "@/lib/db/schema";
+import { forms, responses, answers, questions } from "@/lib/db/schema";
 import { findOrCreatePerson } from "@/lib/people";
 import { sendResponseConfirmation } from "@/lib/resend";
 import { isRateLimited, requestIp } from "@/lib/rate-limit";
+
+// Lets a form feed structured CRM fields (not just name/email) without any
+// per-form configuration: word a question so its auto-generated key starts
+// with one of these prefixes (the key is visible in the question list in
+// the editor) and its answer flows into that field on the linked person.
+const CRM_FIELD_KEY_PREFIXES: [string, "phone" | "birthdate" | "neighborhood" | "caregiverName"][] = [
+  ["telefono", "phone"],
+  ["celular", "phone"],
+  ["fecha_de_nacimiento", "birthdate"],
+  ["fecha_nacimiento", "birthdate"],
+  ["cumpleanos", "birthdate"],
+  ["barrio", "neighborhood"],
+  ["cuidador", "caregiverName"],
+];
+
+async function extractCrmFields(
+  tx: Pick<ReturnType<typeof getDb>, "select">,
+  submittedAnswers: { question_id: string; value: unknown }[],
+) {
+  const questionIds = submittedAnswers.map((a) => a.question_id);
+  if (questionIds.length === 0) return {};
+
+  const qs = await tx
+    .select({ id: questions.id, key: questions.key })
+    .from(questions)
+    .where(inArray(questions.id, questionIds));
+
+  const keyById = new Map(qs.map((q) => [q.id, q.key]));
+  const fields: Partial<Record<"phone" | "birthdate" | "neighborhood" | "caregiverName", string>> = {};
+
+  for (const ans of submittedAnswers) {
+    const key = keyById.get(ans.question_id);
+    if (!key || typeof ans.value !== "string" || !ans.value.trim()) continue;
+    const match = CRM_FIELD_KEY_PREFIXES.find(([prefix]) => key.startsWith(prefix));
+    if (match) fields[match[1]] = ans.value.trim();
+  }
+
+  return fields;
+}
 
 export async function POST(request: Request) {
   try {
@@ -133,10 +172,12 @@ export async function POST(request: Request) {
     let responseId: string;
     try {
       responseId = await db.transaction(async (tx) => {
+        const crmFields = await extractCrmFields(tx, submittedAnswers);
         const personId = await findOrCreatePerson(tx, {
           anonymous: anonymous ?? false,
           name: respondent_name,
           email: respondent_email,
+          ...crmFields,
         });
 
         const [response] = await tx

@@ -14,6 +14,8 @@ export const people = pgTable('people', {
   phone: text('phone'),
   birthdate: date('birthdate'),
   status: text('status').$type<PersonStatus>().notNull().default('nuevo'),
+  neighborhood: text('neighborhood'),
+  caregiverName: text('caregiver_name'),
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
