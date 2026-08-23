@@ -24,6 +24,7 @@ export async function createForm(formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const isActive = formData.get("is_active") === "true";
+  const requireRespondentName = formData.get("require_respondent_name") === "true";
 
   if (!title) {
     return { error: "El título es obligatorio" };
@@ -38,6 +39,7 @@ export async function createForm(formData: FormData) {
         description,
         slug,
         is_active: isActive,
+        require_respondent_name: requireRespondentName,
         created_by: session.userId,
       })
       .returning();
@@ -57,6 +59,7 @@ export async function updateForm(id: string, formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const isActive = formData.get("is_active") === "true";
+  const requireRespondentName = formData.get("require_respondent_name") === "true";
   const rawSlug = formData.get("slug") as string | null;
 
   if (!title) {
@@ -64,10 +67,11 @@ export async function updateForm(id: string, formData: FormData) {
   }
 
   try {
-    const update: { title: string; description: string; is_active: boolean; slug?: string } = {
+    const update: { title: string; description: string; is_active: boolean; require_respondent_name: boolean; slug?: string } = {
       title,
       description,
       is_active: isActive,
+      require_respondent_name: requireRespondentName,
     };
 
     if (rawSlug?.trim()) {

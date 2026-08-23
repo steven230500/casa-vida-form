@@ -15,6 +15,13 @@
       "when": 1786481631328,
       "tag": "0001_yummy_hannibal_king",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787527996653,
+      "tag": "0002_marvelous_jazinda",
+      "breakpoints": true
     }
   ]
 }

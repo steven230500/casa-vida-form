@@ -28,6 +28,7 @@ export default async function Page() {
       formId={form.form_id}
       formTitle={form.title}
       formDescription={form.description ?? ""}
+      requireRespondentName={form.requireRespondentName}
       blocks={form.blocks}
     />
   );

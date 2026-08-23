@@ -1,0 +1,1 @@
+ALTER TABLE "forms" ADD COLUMN "require_respondent_name" boolean DEFAULT false NOT NULL;

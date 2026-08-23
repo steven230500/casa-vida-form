@@ -10,6 +10,7 @@ export default function ShareLinkCard({
   formTitle,
   formDescription,
   formIsActive,
+  formRequireRespondentName,
   slug,
   onSlugChange,
 }: {
@@ -17,6 +18,7 @@ export default function ShareLinkCard({
   formTitle: string;
   formDescription: string | null;
   formIsActive: boolean;
+  formRequireRespondentName: boolean;
   slug: string | null;
   onSlugChange: (slug: string) => void;
 }) {
@@ -75,6 +77,10 @@ export default function ShareLinkCard({
     formData.append("title", formTitle);
     formData.append("description", formDescription || "");
     formData.append("is_active", String(formIsActive));
+    formData.append(
+      "require_respondent_name",
+      String(formRequireRespondentName),
+    );
     formData.append("slug", slugInput);
     const result = await updateForm(formId, formData);
 

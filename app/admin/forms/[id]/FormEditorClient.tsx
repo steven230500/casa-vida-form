@@ -33,6 +33,7 @@ type Form = {
   description: string | null;
   slug: string | null;
   is_active: boolean;
+  require_respondent_name: boolean;
 };
 
 type Block = {
@@ -71,7 +72,12 @@ export default function FormEditorClient({
 }) {
   const router = useRouter();
   const [form, setForm] = useState<Partial<Form>>(
-    initialForm || { title: "", description: "", is_active: true },
+    initialForm || {
+      title: "",
+      description: "",
+      is_active: true,
+      require_respondent_name: false,
+    },
   );
   // Sort blocks by order initially
   const [blocks, setBlocks] = useState<Block[]>(
@@ -101,6 +107,10 @@ export default function FormEditorClient({
     formData.append("title", form.title || "");
     formData.append("description", form.description || "");
     formData.append("is_active", String(form.is_active));
+    formData.append(
+      "require_respondent_name",
+      String(form.require_respondent_name || false),
+    );
     if (!isNew) {
       formData.append("slug", form.slug || "");
     }
@@ -451,6 +461,23 @@ export default function FormEditorClient({
             />
           </div>
 
+          <label className="flex items-center gap-2 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={form.require_respondent_name || false}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  require_respondent_name: e.target.checked,
+                })
+              }
+              className="rounded border-foreground/25 text-foreground focus:ring-foreground/40 w-4 h-4"
+            />
+            <span className="text-sm font-medium">
+              Nombre obligatorio (no permite responder anónimo)
+            </span>
+          </label>
+
           <div className="flex justify-between items-center pt-2">
             {!isNew && (
               <button
@@ -621,6 +648,7 @@ export default function FormEditorClient({
           formTitle={form.title || ""}
           formDescription={form.description ?? null}
           formIsActive={Boolean(form.is_active)}
+          formRequireRespondentName={Boolean(form.require_respondent_name)}
           slug={form.slug ?? null}
           onSlugChange={(newSlug) => setForm((f) => ({ ...f, slug: newSlug }))}
         />

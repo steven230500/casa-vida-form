@@ -11,6 +11,7 @@ import { QuestionCard, QuestionLabel } from "@/components/form/question-card";
 import { LoadingScreen } from "@/components/form/loading-screen";
 import { SuccessScreen } from "@/components/form/success-screen";
 import { v4 as uuidv4 } from "uuid";
+import { DatePartsSelect } from "@/components/form/date-parts-select";
 
 type Screen = "landing" | "mode" | "form" | "loading" | "success" | "error";
 
@@ -37,6 +38,7 @@ interface FormWizardProps {
   formId: string;
   formTitle: string;
   formDescription?: string | null;
+  requireRespondentName: boolean;
   blocks: Block[];
 }
 
@@ -44,6 +46,7 @@ export function FormWizard({
   formId,
   formTitle,
   formDescription,
+  requireRespondentName,
   blocks,
 }: FormWizardProps) {
   const [screen, setScreen] = useState<Screen>("landing");
@@ -53,7 +56,9 @@ export function FormWizard({
   const [answers, setAnswers] = useState<Record<string, any>>({});
 
   // Meta state
-  const [mode, setMode] = useState<"anonymous" | "named" | null>(null);
+  const [mode, setMode] = useState<"anonymous" | "named" | null>(
+    requireRespondentName ? "named" : null,
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
@@ -344,22 +349,26 @@ export function FormWizard({
         </h2>
 
         <div className="space-y-4">
-          <div
-            onClick={() => setMode("anonymous")}
-            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${mode === "anonymous" ? "border-primary bg-primary/5" : "border-border hover:border-gray-300"}`}
-          >
-            <h3 className="font-bold text-lg mb-1">Modo Anónimo</h3>
-            <p className="text-sm text-muted-foreground">
-              Para responder con total privacidad. No sabremos quién llenó la
-              encuesta.
-            </p>
-          </div>
+          {!requireRespondentName && (
+            <div
+              onClick={() => setMode("anonymous")}
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${mode === "anonymous" ? "border-primary bg-primary/5" : "border-border hover:border-gray-300"}`}
+            >
+              <h3 className="font-bold text-lg mb-1">Modo Anónimo</h3>
+              <p className="text-sm text-muted-foreground">
+                Para responder con total privacidad. No sabremos quién llenó
+                la encuesta.
+              </p>
+            </div>
+          )}
 
           <div
             onClick={() => setMode("named")}
-            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${mode === "named" ? "border-primary bg-primary/5" : "border-border hover:border-gray-300"}`}
+            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${mode === "named" ? "border-primary bg-primary/5" : "border-border hover:border-gray-300"} ${requireRespondentName ? "cursor-default" : ""}`}
           >
-            <h3 className="font-bold text-lg mb-1">Deseo identificarme</h3>
+            <h3 className="font-bold text-lg mb-1">
+              {requireRespondentName ? "Tus datos" : "Deseo identificarme"}
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
               Para poder recibir acompañamiento o seguimiento.
             </p>
@@ -367,10 +376,13 @@ export function FormWizard({
             {mode === "named" && (
               <div className="space-y-3 mt-4 animate-in slide-in-from-top-2 fade-in">
                 <Input
-                  placeholder="Tu Nombre (Opcional)"
+                  placeholder={
+                    requireRespondentName ? "Tu Nombre" : "Tu Nombre (Opcional)"
+                  }
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="h-11"
+                  required={requireRespondentName}
                 />
                 <Input
                   type="email"
@@ -387,7 +399,7 @@ export function FormWizard({
         <div className="mt-8">
           <Button
             onClick={() => setScreen("form")}
-            disabled={!mode}
+            disabled={!mode || (requireRespondentName && !name.trim())}
             className="w-full rounded-xl py-6 text-lg"
           >
             Continuar
@@ -602,11 +614,10 @@ export function FormWizard({
 
       case "date":
         return (
-          <Input
-            type="date"
+          <DatePartsSelect
             value={val || ""}
-            onChange={(e) => setAnswer(q.id, e.target.value)}
-            className="h-11"
+            onChange={(v) => setAnswer(q.id, v)}
+            required={q.required}
           />
         );
       case "time":

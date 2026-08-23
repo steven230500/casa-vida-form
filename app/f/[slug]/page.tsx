@@ -31,6 +31,7 @@ export default async function ShortLinkFormPage(props: {
           formId: form.form_id,
           title: form.title,
           description: form.description ?? "",
+          requireRespondentName: form.requireRespondentName,
           blocks: form.blocks,
         }}
       />

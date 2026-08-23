@@ -31,6 +31,10 @@ export const forms = pgTable('forms', {
   // from title, editable in admin. Nullable so old rows keep working.
   slug: text('slug').unique(),
   is_active: boolean('is_active').notNull().default(true),
+  // When true, the respondent name field is required instead of optional -
+  // for forms like member registration where an anonymous submission isn't
+  // useful. Off by default so existing forms keep allowing anonymous replies.
+  require_respondent_name: boolean('require_respondent_name').notNull().default(false),
   start_at: timestamp('start_at', { withTimezone: true }),
   end_at: timestamp('end_at', { withTimezone: true }),
   created_by: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),

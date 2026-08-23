@@ -25,6 +25,7 @@ export type PublicForm = {
   form_id: string
   title: string
   description: string | null
+  requireRespondentName: boolean
   blocks: PublicBlock[]
 }
 
@@ -43,6 +44,7 @@ async function assemble(formRow: {
   id: string
   title: string
   description: string | null
+  require_respondent_name: boolean
 }): Promise<PublicForm> {
   const db = getDb()
   const [blockRows, questionRows] = await Promise.all([
@@ -81,6 +83,7 @@ async function assemble(formRow: {
     form_id: formRow.id,
     title: formRow.title,
     description: formRow.description,
+    requireRespondentName: formRow.require_respondent_name,
     blocks,
   }
 }

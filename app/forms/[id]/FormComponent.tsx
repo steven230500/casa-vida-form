@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
+import { DatePartsSelect } from "@/components/form/date-parts-select";
 
 type Question = {
   id: string;
@@ -27,6 +28,7 @@ type FormProps = {
   formId: string;
   title: string;
   description: string;
+  requireRespondentName: boolean;
   blocks: Block[];
 };
 
@@ -134,6 +136,12 @@ export default function FormComponent({ form }: { form: FormProps }) {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
+
+    if (form.requireRespondentName && !respondentName.trim()) {
+      setError("El nombre es obligatorio.");
+      setIsSubmitting(false);
+      return;
+    }
 
     // Pre-submit validation
     for (const block of form.blocks) {
@@ -273,11 +281,9 @@ export default function FormComponent({ form }: { form: FormProps }) {
       }
       case "date":
         return (
-          <input
-            type="date"
-            className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
+          <DatePartsSelect
             value={value}
-            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+            onChange={(v) => handleAnswerChange(q.id, v)}
             required={q.required}
           />
         );
@@ -392,19 +398,25 @@ export default function FormComponent({ form }: { form: FormProps }) {
         <div className="bg-card p-6 rounded-2xl border border-border">
           <h2 className="text-xl font-semibold mb-1">¿Quién responde?</h2>
           <p className="text-sm text-muted-foreground mb-4 border-b border-border pb-4">
-            Déjalo en blanco para responder de forma anónima. Si lo llenas,
-            así te identificamos para el seguimiento — no lo repitas más
-            abajo.
+            {form.requireRespondentName
+              ? "Así te identificamos para el seguimiento — no lo repitas más abajo."
+              : "Déjalo en blanco para responder de forma anónima. Si lo llenas, así te identificamos para el seguimiento — no lo repitas más abajo."}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Nombre</label>
+              <label className="block text-sm font-medium mb-1">
+                Nombre{" "}
+                {form.requireRespondentName && (
+                  <span className="text-destructive">*</span>
+                )}
+              </label>
               <input
                 type="text"
                 className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
                 value={respondentName}
                 onChange={(e) => setRespondentName(e.target.value)}
-                placeholder="Opcional"
+                placeholder={form.requireRespondentName ? "" : "Opcional"}
+                required={form.requireRespondentName}
               />
             </div>
             <div>
