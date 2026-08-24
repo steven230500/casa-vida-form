@@ -56,7 +56,7 @@ async function assemble(formRow: {
     db
       .select()
       .from(questions)
-      .where(eq(questions.form_id, formRow.id))
+      .where(and(eq(questions.form_id, formRow.id), eq(questions.active, true)))
       .orderBy(asc(questions.order)),
   ])
 

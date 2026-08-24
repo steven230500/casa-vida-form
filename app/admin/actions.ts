@@ -190,6 +190,7 @@ export type QuestionPayload = {
   required: boolean;
   order: number;
   condition?: any;
+  active?: boolean;
 };
 
 export async function createQuestion(payload: QuestionPayload) {

@@ -23,6 +23,8 @@ import {
   ChevronUp,
   Edit2,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import ShareLinkCard from "./ShareLinkCard";
 import { keyify } from "@/lib/slugify";
@@ -55,6 +57,7 @@ type Question = {
   required: boolean;
   order: number;
   condition: any;
+  active: boolean;
 };
 
 const OPTION_BASED_TYPES = ["radio", "checkbox", "select", "points100"];
@@ -327,6 +330,20 @@ export default function FormEditorClient({
     router.refresh();
   };
 
+  const handleToggleQuestionActive = async (question: Question) => {
+    const nextActive = !question.active;
+    setQuestions(
+      questions.map((q) =>
+        q.id === question.id ? { ...q, active: nextActive } : q,
+      ),
+    );
+    await updateQuestion(question.id, {
+      form_id: question.form_id,
+      active: nextActive,
+    });
+    router.refresh();
+  };
+
   const handleMoveQuestion = async (
     question: Question,
     direction: "up" | "down",
@@ -561,7 +578,9 @@ export default function FormEditorClient({
                   {blockQuestions.map((q, qIndex) => (
                     <div
                       key={q.id}
-                      className="flex items-center justify-between bg-background p-3 rounded-md border border-foreground/10 group"
+                      className={`flex items-center justify-between bg-background p-3 rounded-md border border-foreground/10 group ${
+                        q.active === false ? "opacity-50" : ""
+                      }`}
                     >
                       <div className="flex items-center space-x-3">
                         <div className="flex flex-col items-center space-y-1">
@@ -594,10 +613,26 @@ export default function FormEditorClient({
                                 *Requerido
                               </span>
                             )}
+                            {q.active === false && (
+                              <span className="text-muted-foreground font-medium">
+                                Oculta
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleToggleQuestionActive(q)}
+                          className="text-muted-foreground hover:text-foreground p-1"
+                          title={q.active === false ? "Mostrar pregunta" : "Ocultar pregunta"}
+                        >
+                          {q.active === false ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
                         <button
                           onClick={() => openEditQuestionModal(q)}
                           className="text-muted-foreground hover:text-foreground p-1"

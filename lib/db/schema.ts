@@ -76,6 +76,10 @@ export const questions = pgTable('questions', {
   required: boolean('required').notNull().default(false),
   order: integer('order').notNull().default(0),
   condition: jsonb('condition'),
+  // Hide from the public form without losing already-collected answers or
+  // having to recreate it later - same idea as service_times.active in the
+  // casa-vida repo.
+  active: boolean('active').notNull().default(true),
   created_at: timestamp('created_at').notNull().defaultNow(),
 })
 

@@ -22,6 +22,13 @@
       "when": 1787527996653,
       "tag": "0002_marvelous_jazinda",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787534006062,
+      "tag": "0003_watery_gateway",
+      "breakpoints": true
     }
   ]
 }
