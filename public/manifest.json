@@ -1,7 +1,7 @@
 {
-  "name": "Jovenes Casa Vida 20+",
-  "short_name": "Casa Vida 20+",
-  "description": "Formulario semanal de reflexion espiritual",
+  "name": "Formularios Casa Vida",
+  "short_name": "Casa Vida",
+  "description": "Formularios dinámicos de Casa Vida",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5EDE4",

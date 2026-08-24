@@ -15,8 +15,8 @@ const dmSerif = DM_Serif_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'Jovenes Casa Vida 20+',
-  description: 'Formulario semanal de reflexion espiritual para jovenes adultos',
+  title: 'Formularios Casa Vida',
+  description: 'Formularios dinámicos de Casa Vida',
   manifest: '/manifest.json',
   icons: {
     icon: [
