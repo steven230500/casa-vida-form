@@ -1,35 +1,22 @@
-import { FormWizard } from "@/components/form/form-wizard";
-import { getActiveForm } from "@/lib/forms";
-
-export const dynamic = "force-dynamic";
-
-export default async function Page() {
-  const form = await getActiveForm();
-
-  if (!form) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <div className="max-w-md w-full text-center p-8 rounded-2xl shadow-sm border border-border">
-          <div className="text-4xl mb-4">🗓️</div>
-          <h1 className="text-2xl font-bold mb-2">
-            No hay formularios activos
-          </h1>
-          <p className="text-muted-foreground">
-            Actualmente no tenemos ningún formulario habilitado para responder.
-            Por favor vuelve más tarde.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+export default function Page() {
   return (
-    <FormWizard
-      formId={form.form_id}
-      formTitle={form.title}
-      formDescription={form.description ?? ""}
-      requireRespondentName={form.requireRespondentName}
-      blocks={form.blocks}
-    />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <div className="max-w-md w-full text-center bg-card p-8 rounded-2xl border border-border">
+        <div className="text-6xl mb-6">📋</div>
+        <h1 className="text-2xl font-serif mb-4">
+          Usa el enlace que te compartieron
+        </h1>
+        <p className="text-muted-foreground mb-8">
+          Cada formulario de Casa Vida tiene su propio enlace o código QR.
+          Si llegaste aquí sin uno, visita el sitio principal de la iglesia.
+        </p>
+        <a
+          href="https://casavidactg.com"
+          className="inline-block px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full hover:bg-primary/90 transition-colors"
+        >
+          Ir a casavidactg.com
+        </a>
+      </div>
+    </div>
   );
 }
