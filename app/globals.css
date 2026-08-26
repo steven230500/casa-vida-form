@@ -159,3 +159,20 @@
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Recolorable via currentColor: the isologo PNG is white-ink stencil art
+   (opaque circle, house outline cut through as transparent holes), used
+   here as a mask so any text-* color class works like it did on the old
+   inline SVG mark. Mirrors casa-vida's app/globals.css treatment. */
+.logo-mark {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask-image: url('/logos/casavida-isologo-white.png');
+  mask-image: url('/logos/casavida-isologo-white.png');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}

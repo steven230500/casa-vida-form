@@ -19,7 +19,7 @@ export default async function ReviewerLayout({
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link href="/reviewer" className="flex items-center gap-2">
-                <LogoMark className="size-6" strokeWidth={5} />
+                <LogoMark className="size-6" />
                 <span className="font-semibold text-sm tracking-[0.2em] uppercase">
                   Revisión
                 </span>
