@@ -44,8 +44,15 @@ jobs:
             mkdir -p "$SERVER_PATH"
             cd "$SERVER_PATH"
 
-            # Pull config from repo directly (kept until after migrations run)
-            rm -rf temp_repo
+            # Pull config from repo directly (kept until after migrations run).
+            # sudo: the migration's node:20-alpine container below runs as
+            # root (npm ci needs to write into the image's /usr/local), which
+            # leaves temp_repo/node_modules root-owned on the host. A plain
+            # unprivileged rm on that fails outright, and under
+            # set -euo pipefail that kills this whole script on the *next*
+            # deploy before it even reaches git clone - same bug found and
+            # fixed in casa-vida's deploy.yml.
+            sudo rm -rf temp_repo
             git clone https://github.com/steven230500/casa-vida-form.git temp_repo
             cp temp_repo/docker-compose.prod.yml docker-compose.yml
 
@@ -83,6 +90,6 @@ jobs:
               -e DATABASE_URL="postgres://casavida:${{ secrets.POSTGRES_PASSWORD }}@casavida-db:5432/casavida" \
               node:20-alpine sh -c "npm ci && npx drizzle-kit migrate"
 
-            rm -rf temp_repo
+            sudo rm -rf temp_repo
 
             echo "Deployment to $SERVER_PATH completed successfully"
