@@ -186,10 +186,10 @@ export type QuestionPayload = {
   key: string;
   label: string;
   type: string;
-  options?: any;
+  options?: unknown;
   required: boolean;
   order: number;
-  condition?: any;
+  condition?: unknown;
   active?: boolean;
 };
 

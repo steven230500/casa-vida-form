@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { findUserByEmail } from "@/lib/users";
 import { verifyPassword, createSessionToken, SESSION_COOKIE } from "@/lib/auth";
 
-export async function login(prevState: any, formData: FormData) {
+export async function login(prevState: { error: string } | null, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 

@@ -63,7 +63,7 @@ export default async function ResponseDetail(props: {
     return acc;
   }, {});
 
-  const renderValue = (value: any, type: string | null) => {
+  const renderValue = (value: unknown, type: string | null) => {
     if (!value)
       return (
         <span className="text-muted-foreground italic">Sin respuesta</span>
@@ -73,7 +73,8 @@ export default async function ResponseDetail(props: {
       type === "file" &&
       typeof value === "object" &&
       "path" in value &&
-      "filename" in value
+      "filename" in value &&
+      typeof value.path === "string" && typeof value.filename === "string"
     ) {
       return (
         <a
@@ -87,7 +88,7 @@ export default async function ResponseDetail(props: {
       );
     }
 
-    if (type === "points100") {
+    if (type === "points100" && typeof value === "object") {
       return (
         <ul className="list-disc list-inside space-y-1 mt-2">
           {Object.entries(value).map(([key, val]) => (

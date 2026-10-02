@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
+import { parseQuestionCondition, asAnswerRecord } from "@/lib/form-values";
 import { DatePartsSelect } from "@/components/form/date-parts-select";
 
 type Question = {
@@ -10,10 +11,10 @@ type Question = {
   key: string;
   label: string;
   type: string;
-  options: any;
+  options: unknown;
   required: boolean;
   order: number;
-  condition: any;
+  condition: unknown;
 };
 
 type Block = {
@@ -34,7 +35,7 @@ type FormProps = {
 
 export default function FormComponent({ form }: { form: FormProps }) {
   const router = useRouter();
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [draftId, setDraftId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -87,7 +88,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
     }
   }, [answers, respondentName, respondentEmail, form.formId]);
 
-  const handleAnswerChange = (questionId: string, value: any) => {
+  const handleAnswerChange = (questionId: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
@@ -108,8 +109,8 @@ export default function FormComponent({ form }: { form: FormProps }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo subir el archivo");
       handleAnswerChange(questionId, data);
-    } catch (err: any) {
-      setUploadErrors((prev) => ({ ...prev, [questionId]: err.message }));
+    } catch (err: unknown) {
+      setUploadErrors((prev) => ({ ...prev, [questionId]: (err instanceof Error ? err.message : "No se pudo completar la solicitud") }));
     } finally {
       setUploadingIds((prev) => {
         const next = new Set(prev);
@@ -120,14 +121,15 @@ export default function FormComponent({ form }: { form: FormProps }) {
   };
 
   const isQuestionVisible = (q: Question) => {
-    if (!q.condition?.questionId) return true;
-    return answers[q.condition.questionId] === q.condition.equals;
+    const condition = parseQuestionCondition(q.condition);
+    if (!condition?.questionId) return true;
+    return answers[condition.questionId] === condition.equals;
   };
 
   const calculatePoints100Sum = (questionId: string) => {
-    const vals = answers[questionId] || {};
-    return Object.values(vals).reduce(
-      (acc: number, val: any) => acc + Number(val || 0),
+    const vals = asAnswerRecord(answers[questionId]);
+    return Object.values(vals).reduce<number>(
+      (acc: number, val: unknown) => acc + Number(val || 0),
       0,
     ) as number;
   };
@@ -207,8 +209,8 @@ export default function FormComponent({ form }: { form: FormProps }) {
 
       // Redirect to success
       router.push(`/forms/${form.formId}/success`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : "No se pudo completar la solicitud"));
     } finally {
       setIsSubmitting(false);
     }
@@ -216,6 +218,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
 
   const renderInput = (q: Question) => {
     const value = answers[q.id] || "";
+    const scalarValue = typeof value === "string" || typeof value === "number" ? value : "";
 
     switch (q.type) {
       case "textarea":
@@ -223,7 +226,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
           <textarea
             className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
             rows={4}
-            value={value}
+            value={scalarValue}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             required={q.required}
           />
@@ -282,7 +285,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
       case "date":
         return (
           <DatePartsSelect
-            value={value}
+            value={String(scalarValue)}
             onChange={(v) => handleAnswerChange(q.id, v)}
             required={q.required}
           />
@@ -292,7 +295,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
           <input
             type="time"
             className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
-            value={value}
+            value={scalarValue}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             required={q.required}
           />
@@ -317,7 +320,8 @@ export default function FormComponent({ form }: { form: FormProps }) {
           </div>
         );
       case "file": {
-        const uploaded = value && typeof value === "object" ? value : null;
+        const record = asAnswerRecord(value);
+        const uploaded = typeof record.filename === "string" ? record.filename : null;
         const isUploading = uploadingIds.has(q.id);
         const uploadError = uploadErrors[q.id];
         return (
@@ -333,7 +337,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
               <p className="text-sm text-muted-foreground">Subiendo...</p>
             )}
             {uploaded && !isUploading && (
-              <p className="text-sm text-primary">✓ {uploaded.filename}</p>
+              <p className="text-sm text-primary">✓ {uploaded}</p>
             )}
             {uploadError && (
               <p className="text-sm text-destructive">{uploadError}</p>
@@ -359,9 +363,9 @@ export default function FormComponent({ form }: { form: FormProps }) {
                   min="0"
                   max="100"
                   className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
-                  value={answers[q.id]?.[opt] || ""}
+                  value={String(asAnswerRecord(answers[q.id])[opt] ?? "")}
                   onChange={(e) => {
-                    const currentVals = answers[q.id] || {};
+                    const currentVals = asAnswerRecord(answers[q.id]);
                     handleAnswerChange(q.id, {
                       ...currentVals,
                       [opt]: parseInt(e.target.value) || 0,
@@ -377,7 +381,7 @@ export default function FormComponent({ form }: { form: FormProps }) {
           <input
             type="text"
             className="w-full rounded-md border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary/50"
-            value={value}
+            value={scalarValue}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             required={q.required}
           />

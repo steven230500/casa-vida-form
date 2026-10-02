@@ -16,7 +16,8 @@ const dmSerif = DM_Serif_Display({
 
 export const metadata: Metadata = {
   title: 'Formularios Casa Vida',
-  description: 'Formularios dinámicos de Casa Vida',
+  description: 'Formularios de inscripción y solicitudes de Casa Vida.',
+  robots: { index: false, follow: false, noarchive: true },
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -41,8 +42,6 @@ export const viewport: Viewport = {
   themeColor: '#8B5E3C',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 }
 
 export default function RootLayout({

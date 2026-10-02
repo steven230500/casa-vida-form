@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { forms, formBlocks, questions } from "@/lib/db/schema";
+import { parseQuestionCondition } from "@/lib/form-values";
 import FormEditorClient from "./FormEditorClient";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,7 @@ export default async function FormEditorPage({
       <FormEditorClient
         initialForm={form}
         initialBlocks={blocks}
-        initialQuestions={formQuestions}
+        initialQuestions={formQuestions.map(q => ({ ...q, condition: parseQuestionCondition(q.condition) }))}
         isNew={isNew}
       />
     </div>

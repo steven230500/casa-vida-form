@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import QRCode from "qrcode";
 import { Copy, Check, Download, Pencil, X } from "lucide-react";
 import { updateForm } from "@/app/admin/actions";
+
+const subscribeToOrigin = () => () => {};
+const getOrigin = () => window.location.origin;
+const getServerOrigin = () => "";
 
 export default function ShareLinkCard({
   formId,
@@ -23,16 +27,13 @@ export default function ShareLinkCard({
   onSlugChange: (slug: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [origin, setOrigin] = useState("");
+  const origin = useSyncExternalStore(subscribeToOrigin, getOrigin, getServerOrigin);
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [slugInput, setSlugInput] = useState(slug || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
 
   const url = slug && origin ? `${origin}/f/${slug}` : "";
 

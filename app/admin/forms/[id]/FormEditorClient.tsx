@@ -27,6 +27,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import ShareLinkCard from "./ShareLinkCard";
+import { parseQuestionCondition } from "@/lib/form-values";
 import { keyify } from "@/lib/slugify";
 
 type Form = {
@@ -53,10 +54,10 @@ type Question = {
   key: string;
   label: string;
   type: string;
-  options: any;
+  options: unknown;
   required: boolean;
   order: number;
-  condition: any;
+  condition: { questionId: string; equals: string } | null;
   active: boolean;
 };
 
@@ -137,8 +138,8 @@ export default function FormEditorClient({
           router.refresh();
         }
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar el formulario");
     } finally {
       setLoading(false);
     }
@@ -309,7 +310,7 @@ export default function FormEditorClient({
     if (result.error || !result.data) {
       alert(result.error);
     } else {
-      const savedQuestion = result.data;
+      const savedQuestion = { ...result.data, condition: parseQuestionCondition(result.data.condition) };
       if (editingQuestion.id) {
         setQuestions(
           questions.map((q) => (q.id === editingQuestion.id ? savedQuestion : q)),

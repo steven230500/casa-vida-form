@@ -197,7 +197,7 @@ export async function POST(request: Request) {
           .returning({ id: responses.id });
 
         await tx.insert(answers).values(
-          submittedAnswers.map((ans: any) => ({
+          submittedAnswers.map((ans: { question_id: string; value: unknown }) => ({
             response_id: response.id,
             question_id: ans.question_id,
             value: ans.value,

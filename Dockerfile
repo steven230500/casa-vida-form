@@ -19,7 +19,7 @@ COPY . .
 # Next.js telemetry is disabled: https://nextjs.org/telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+RUN npm run lint && npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
